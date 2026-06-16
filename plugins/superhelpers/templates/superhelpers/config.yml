@@ -1,0 +1,19 @@
+# superhelpers configuration. All .superhelpers artifacts are stored in English.
+language:
+  artifacts: en          # .superhelpers files + commit messages
+  conversation: auto     # detect from the user's message
+attribution:
+  commit: none           # none | ai-assisted | co-authored
+gates:                   # omit any line to fall back to stack autodetection
+  test: ""
+  lint: ""
+  types: ""
+  format: ""
+review:
+  default_tier: auto     # auto | light | medium | full
+  reviewer_model: sonnet # haiku | sonnet | opus
+  max_review_agents: 5
+security:
+  deterministic: []      # e.g. [gitleaks, "npm audit", semgrep] — run first in Full
+paths:
+  root: .superhelpers
