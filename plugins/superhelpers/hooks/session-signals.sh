@@ -4,7 +4,11 @@ set -eu
 changed="$(git status --porcelain --untracked-files=all 2>/dev/null | awk '{print $2}' | sort -u)"
 files_changed=0
 [ -n "$changed" ] && files_changed="$(printf '%s\n' "$changed" | grep -c .)"
-lines_changed="$(git diff HEAD --numstat 2>/dev/null | awk '{a+=$1+$2} END{print a+0}')"
+# lines changed = tracked diff lines + lines in brand-new untracked files
+tracked_lines="$(git diff HEAD --numstat 2>/dev/null | awk '{a+=$1+$2} END{print a+0}')"
+untracked_lines="$(git ls-files --others --exclude-standard 2>/dev/null \
+  | while IFS= read -r f; do [ -f "$f" ] && wc -l < "$f"; done | awk '{a+=$1} END{print a+0}')"
+lines_changed=$((tracked_lines + untracked_lines))
 
 touched=""
 add_cat() { touched="$touched\"$1\","; }

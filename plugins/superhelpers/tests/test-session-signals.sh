@@ -18,6 +18,8 @@ files="$(printf '%s' "$out" | jq -r '.files_changed')"
 assert_eq "counts changed files" "2" "$files"
 mig="$(printf '%s' "$out" | jq -r '.touched | index("migration") != null')"
 assert_eq "flags migration path" "true" "$mig"
+lines="$(printf '%s' "$out" | jq -r '.lines_changed')"
+assert_eq "counts lines in new untracked files" "2" "$lines"
 rm -rf "$work"
 
 finish_tests
