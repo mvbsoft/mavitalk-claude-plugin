@@ -24,7 +24,7 @@ long prompts.
 
 | Skill | Triggered by (any language) | What it does |
 |---|---|---|
-| `superhelpers:finishing-the-session` | "давай закінчуємо", "let's finish", "wrap up" | Assess → tiered review → fix → **gated commit** → persist handoff/memory/ADR |
+| `superhelpers:finishing-the-session` | "давай закінчуємо", "let's finish", "wrap up" | Assess → tiered review → fix → **gated commit** → persist handoff/memory |
 | `superhelpers:continue-session` | "продовжуємо", "let's continue", "давай почнемо" | Restore prior-session context, verify git state, continue in your language |
 
 Two bundled hooks make this reliable: a `UserPromptSubmit` hook detects the phrases, and a
@@ -45,8 +45,7 @@ loaded with zero prompt).
 2. Runs the review, helps fix Critical/Important findings, re-runs your gates.
 3. **Stops at the commit gate** — shows you the staged diff and waits for your "ok". Commits look like
    normal dev commits (**no AI attribution**). Never pushes unless you ask.
-4. Writes the handoff: `sessions/` log, `project-memory.md`, an ADR if the decision warrants one, and
-   `next-session.md`.
+4. Writes the handoff: `sessions/` log, `project-memory.md`, and `next-session.md`.
 
 **Resume next time** — open the project (context auto-loads) and type `продовжуємо`. It re-reads the
 handoff, checks the last commit SHA against git (so it never trusts a stale "done" list), briefs you
@@ -58,7 +57,6 @@ in your language, and starts the immediate next action.
 .superhelpers/
 ├── sessions/YYYY-MM-DD-NNN.md   # append-only per-session log   (committed)
 ├── memory/project-memory.md      # rolling project memory         (committed)
-├── adr/ADR-NNNN-title.md         # architecture decisions (MADR)  (committed)
 ├── next-session.md               # continuation context           (committed)
 ├── reviews/  staging/            # transient pipeline scratch      (gitignored)
 └── config.yml                    # gates, language, tiers, attribution

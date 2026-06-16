@@ -33,7 +33,7 @@ last edit; Full re-reviews changed files).
 
 ## Phase 2 — HAND OFF
 Persist per `references/commit-and-persist.md`: session log, project-memory (Active context only),
-ADR (only if it passes the ≥2-of-5 gate), and `next-session.md` (with `last_verified_sha`). Use
+and `next-session.md` (with `last_verified_sha`). Use
 `references/handoff-template.md` for the next-session fields. Show `next-session.md` to the developer
 to confirm.
 

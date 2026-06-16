@@ -20,10 +20,6 @@
 - **`.superhelpers/memory/project-memory.md`**: rewrite ONLY section 5 (Active context); keep the
   ~150-line cap; store the WHY, not what code shows; never record things readable from code. If the
   file exceeds the cap, archive resolved items to `memory/project-memory-archive.md`.
-- **ADR (gated):** create `.superhelpers/adr/ADR-NNNN-title.md` from `templates/.../ADR-template.md`
-  (MADR, status `proposed`; the developer flips to `accepted`) ONLY if the decision meets ≥2 of:
-  structural impact · hard to reverse · technology choice · resolves a requirement conflict · selects
-  a pattern. Before writing, grep existing ADRs for a near-duplicate; number = max existing + 1.
 - **`.superhelpers/next-session.md`**: fill current state · done (with SHA) · NOT done · known issues ·
   architecture snapshot · dead-ends · **immediate next action**; set `last_verified_sha` to the final
   commit SHA; prepend deltas, do not rewrite history; keep the ~150-line cap. Show it to the developer
