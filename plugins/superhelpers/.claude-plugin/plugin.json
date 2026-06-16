@@ -1,0 +1,17 @@
+{
+  "name": "superhelpers",
+  "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently bundles: finishing-the-session (end-of-session wrap-up — deterministic gate verification with evidence, requirement traceability, independent fresh-context review, a complete next-session handoff, then a clean commit). Project-agnostic — each skill reads gate commands, response language, and handoff paths from the project's CLAUDE.md.",
+  "author": {
+    "name": "malina"
+  },
+  "keywords": [
+    "superhelpers",
+    "workflow",
+    "skills",
+    "session",
+    "handoff",
+    "verification",
+    "wrap-up",
+    "commit"
+  ]
+}
