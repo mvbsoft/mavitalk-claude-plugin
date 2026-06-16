@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Deterministic working-tree signals for the finish assessment. Facts only, no decision.
 set -eu
-changed="$(git status --porcelain 2>/dev/null | awk '{print $2}' | sort -u)"
+changed="$(git status --porcelain --untracked-files=all 2>/dev/null | awk '{print $2}' | sort -u)"
 files_changed=0
 [ -n "$changed" ] && files_changed="$(printf '%s\n' "$changed" | grep -c .)"
 lines_changed="$(git diff HEAD --numstat 2>/dev/null | awk '{a+=$1+$2} END{print a+0}')"
