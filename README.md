@@ -95,5 +95,4 @@ After edits: `/plugin marketplace update mavitalk-claude-plugin` then `/reload-p
 
 Skills and hooks live under `plugins/superhelpers/`. Edit here (never the `~/.claude/plugins/cache`
 copy), run the shell test suite (`sh plugins/superhelpers/tests/run-tests.sh`), then
-`/plugin marketplace update` + `/reload-plugins`. Design spec and implementation plans are in
-`docs/superpowers/`.
+`/plugin marketplace update` + `/reload-plugins`.

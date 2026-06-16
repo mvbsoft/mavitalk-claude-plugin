@@ -91,4 +91,4 @@
 
 Скіли й хуки — під `plugins/superhelpers/`. Редагуй тут (не копію в `~/.claude/plugins/cache`),
 проганяй shell-тести (`sh plugins/superhelpers/tests/run-tests.sh`), потім
-`/plugin marketplace update` + `/reload-plugins`. Дизайн-спец і плани реалізації — у `docs/superpowers/`.
+`/plugin marketplace update` + `/reload-plugins`.
