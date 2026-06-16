@@ -1,6 +1,6 @@
 {
   "name": "superhelpers",
-  "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently bundles: finishing-the-session (end-of-session wrap-up — deterministic gate verification with evidence, requirement traceability, independent fresh-context review, a complete next-session handoff, then a clean commit). Project-agnostic — each skill reads gate commands, response language, and handoff paths from the project's CLAUDE.md.",
+  "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently bundles: finishing-the-session (tiered, gated end-of-session pipeline) and continue-session (resume prior-session context).",
   "author": {
     "name": "malina"
   },
@@ -13,5 +13,13 @@
     "verification",
     "wrap-up",
     "commit"
-  ]
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/detect-intent.sh", "timeout": 5 } ] }
+    ],
+    "SessionStart": [
+      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-next-session.sh", "timeout": 5 } ] }
+    ]
+  }
 }
