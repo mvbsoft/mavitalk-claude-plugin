@@ -1,95 +1,99 @@
-# mavitalk-claude-plugin
+# superhelpers — a Claude Code session pipeline
 
-A personal **Claude Code plugin marketplace** hosting the **`superhelpers`** plugin — a bundle of
-reusable, project-agnostic workflow skills shared across every repo and, once this folder is pushed
-to git, across machines.
+> 🇺🇦 Українською: [README.uk.md](README.uk.md)
 
-This is the **single place** the plugin is authored and updated. Never edit the installed copy under
-`~/.claude/plugins/cache/…`; always edit here, then refresh.
+`superhelpers` is a personal **Claude Code plugin** (hosted in the `mavitalk-claude-plugin`
+marketplace) that wraps your coding sessions in a disciplined, mostly-hands-off workflow:
 
-## Layout
+- **At the end of a session** it verifies the work (tiered multi-agent review), helps you fix what's
+  found, makes a **clean, gated commit**, and writes a complete handoff.
+- **At the start of the next session** it restores everything — what was done, what's left, the exact
+  next step — so you continue without re-explaining anything.
 
-```
-mavitalk-claude-plugin/
-├── .claude-plugin/
-│   └── marketplace.json          # the catalog: lists the superhelpers plugin
-├── README.md                     # this file
-└── plugins/
-    └── superhelpers/
-        ├── .claude-plugin/
-        │   └── plugin.json        # the plugin manifest (name, description, author)
-        └── skills/
-            └── <skill-name>/
-                ├── SKILL.md       # one skill (namespaced as superhelpers:<skill-name>)
-                └── references/     # optional supporting docs (loaded on demand)
-```
+All of its state lives in one folder, **`.superhelpers/`**, written in English; the conversation
+stays in your language.
 
-`superhelpers` is **one plugin that bundles many skills**. Each skill is invoked as
-`superhelpers:<skill-name>`. Names are `kebab-case`.
+## What it's for
 
-## Skills
+The problem: closing a coding session "blind" (committing unverified work, losing the *why* behind
+decisions) and re-explaining context every time you come back. superhelpers makes the **end** of a
+session rigorous and the **start** of the next one frictionless — driven by short natural phrases, not
+long prompts.
 
-| Skill | Invoked as | What it does |
+## The two skills
+
+| Skill | Triggered by (any language) | What it does |
 |---|---|---|
-| `finishing-the-session` | `superhelpers:finishing-the-session` | End-of-session wrap-up: independent verification (gates + requirement traceability + fresh-context review) → complete next-session handoff → clean commit. Project-agnostic (reads each project's CLAUDE.md). |
+| `superhelpers:finishing-the-session` | "давай закінчуємо", "let's finish", "wrap up" | Assess → tiered review → fix → **gated commit** → persist handoff/memory/ADR |
+| `superhelpers:continue-session` | "продовжуємо", "let's continue", "давай почнемо" | Restore prior-session context, verify git state, continue in your language |
 
-## Versioning
+Two bundled hooks make this reliable: a `UserPromptSubmit` hook detects the phrases, and a
+`SessionStart` hook auto-injects `next-session.md` the moment you open the project (so context is
+loaded with zero prompt).
 
-`plugin.json` intentionally omits `version` → every git commit is a new version (tracked by commit
-SHA). Just edit + commit; consumers get the update on `/plugin marketplace update`. (Switch to an
-explicit `version` field only if the plugin needs pinned, stable releases.)
+## How to use
 
-## Install (one-time per machine)
+**Finish a session** — type something like `давай закінчуємо`. The skill:
+1. Proposes a **verification tier** (you make the final call):
 
-**While this folder is local (no git yet)** — directory source:
+   | Tier | Runs | ≈ cost |
+   |---|---|---|
+   | **Light** | 4 review agents (correctness · architecture · security · quality+docs) | ~80k tokens |
+   | **Medium** | + Requirement Auditor (chat ↔ code) + Judge | ~110k |
+   | **Full** | + deterministic security scan + post-fix re-review | ~180k |
 
+2. Runs the review, helps fix Critical/Important findings, re-runs your gates.
+3. **Stops at the commit gate** — shows you the staged diff and waits for your "ok". Commits look like
+   normal dev commits (**no AI attribution**). Never pushes unless you ask.
+4. Writes the handoff: `sessions/` log, `project-memory.md`, an ADR if the decision warrants one, and
+   `next-session.md`.
+
+**Resume next time** — open the project (context auto-loads) and type `продовжуємо`. It re-reads the
+handoff, checks the last commit SHA against git (so it never trusts a stale "done" list), briefs you
+in your language, and starts the immediate next action.
+
+## Where it stores everything — `.superhelpers/`
+
+```
+.superhelpers/
+├── sessions/YYYY-MM-DD-NNN.md   # append-only per-session log   (committed)
+├── memory/project-memory.md      # rolling project memory         (committed)
+├── adr/ADR-NNNN-title.md         # architecture decisions (MADR)  (committed)
+├── next-session.md               # continuation context           (committed)
+├── reviews/  staging/            # transient pipeline scratch      (gitignored)
+└── config.yml                    # gates, language, tiers, attribution
+```
+
+On the first finish in a project, superhelpers scaffolds this folder from its templates. Tune
+`config.yml` — your gate commands, `review.reviewer_model` (default `sonnet`), `review.default_tier`,
+and `attribution.commit` (default `none`).
+
+## Install
+
+While the marketplace is a local folder:
 ```
 /plugin marketplace add ~/projects/mavitalk-claude-plugin
 /plugin install superhelpers@mavitalk-claude-plugin
 ```
-
-**Once pushed to GitHub** — git source (this is what travels to a new PC):
-
+Once pushed to a git host:
 ```
 /plugin marketplace add <your-github-user>/mavitalk-claude-plugin
 /plugin install superhelpers@mavitalk-claude-plugin
 ```
+After edits: `/plugin marketplace update mavitalk-claude-plugin` then `/reload-plugins`.
 
-**Auto-enable per project** (so a fresh `git clone` + workspace-trust pulls it in automatically) —
-commit this to each consuming repo's `.claude/settings.json`:
+## Good to know
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "mavitalk-claude-plugin": {
-      "source": { "source": "github", "repo": "<your-github-user>/mavitalk-claude-plugin" }
-    }
-  },
-  "enabledPlugins": { "superhelpers@mavitalk-claude-plugin": true }
-}
-```
+- **You stay in control.** The commit is gated; nothing is pushed without you. The pipeline *proposes*
+  the tier — you decide.
+- **It's guidance, not a cage.** Claude follows the skills' instructions; the hooks make triggering
+  and context-restore reliable, but the depth of any given run is ultimately Claude's behavior + your
+  confirmations.
+- **Cost control:** default to Light/skip on small sessions; reserve Full for substantial work.
 
-While still local (no git), use a `directory` source instead of `github`:
-`"source": { "source": "directory", "path": "/absolute/path/to/mavitalk-claude-plugin" }`.
+## Develop
 
-## Update the plugin
-
-1. Edit the files **here** (never the cache).
-2. Commit (when this is a git repo) — that is the new version.
-3. On each machine: `/plugin marketplace update mavitalk-claude-plugin` (+ `/reload-plugins`).
-
-## Add a new skill to the bundle
-
-1. Create `plugins/superhelpers/skills/<new-skill>/SKILL.md` (+ optional `references/`).
-2. It is automatically picked up as `superhelpers:<new-skill>` — no marketplace.json change needed.
-3. Author the skill TDD-style (baseline test → write → verify with a subagent) before relying on it.
-
----
-
-### Як я цим користуюсь (UA)
-
-Це моя особиста «вітрина» з одним плагіном `superhelpers`, що збирає докупи робочі скіли для всіх
-проєктів. Усе **пишу й оновлюю тут** (не в `~/.claude`). Кожен скіл викликається як
-`superhelpers:<skill>` — наприклад `superhelpers:finishing-the-session` (або природною мовою:
-«завершуємо сесію»). Коли захочу — створю git-репо й запушу; тоді плагін їде на новий ПК
-автоматично.
+Skills and hooks live under `plugins/superhelpers/`. Edit here (never the `~/.claude/plugins/cache`
+copy), run the shell test suite (`sh plugins/superhelpers/tests/run-tests.sh`), then
+`/plugin marketplace update` + `/reload-plugins`. Design spec and implementation plans are in
+`docs/superpowers/`.
