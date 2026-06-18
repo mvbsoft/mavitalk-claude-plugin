@@ -25,10 +25,11 @@ Base slices (always): Correctness & Edge-cases · Architecture & Design · Secur
 |---|---|---|
 | **Light** | nothing — raw findings go to the developer | ~80k |
 | **Medium** | Requirement Auditor (isolated) + Judge (dedup, confidence threshold, conflict escalation) | ~110k |
-| **Full** | deterministic security suite FIRST + post-fix re-review of changed files | ~180k |
+| **Full** | deterministic security suite FIRST + a **Sweep** gap-hunt reviewer (after base+auditor) + post-fix re-review of changed files | ~200k |
 
 ## Agent budget (respect the global 10-agents / 5-min cap)
 Read-only `Explore` subagents only; model from `config.yml review.reviewer_model` (default Sonnet);
 no nested fan-out. Full = 4 reviewers + 1 Requirement Auditor = 5 subagents; the Judge runs in the
-main thread; deterministic security is tools (0 agents); the post-fix re-review reuses ≤4 agents and
-is sequenced if the cap would be exceeded.
+main thread; deterministic security is tools (0 agents); the **Sweep** (1 agent) and the post-fix
+re-review (≤4 agents) run AFTER the base wave and are sequenced into the next window if the 5/5-min
+cap would be exceeded.
