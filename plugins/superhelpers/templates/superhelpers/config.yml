@@ -10,10 +10,36 @@ gates:                   # omit any line to fall back to stack autodetection
   types: ""
   format: ""
 review:
-  default_tier: auto     # auto | light | medium | full
-  reviewer_model: sonnet # haiku | sonnet | opus
-  max_review_agents: 5
+  default_tier: auto             # auto | light | medium | full
+  reviewer_model: sonnet         # base reviewers
+  retrieval_model: haiku         # impact-map / extraction
+  judge_model: opus              # always Opus (pinned)
+  escalate_model: opus           # contested-finding adjudicator
+  full_reviewer_escalation: [correctness, architecture]  # bumped to Opus in Full
+  full_context: graph            # graph | wide-impact (fallback for huge repos)
+  confidence_floor: 0.5          # part of the soft-drop rule
+  escalate_threshold: 0.7        # Critical below this → Opus adjudicator
+  max_review_agents: 10          # base-wave budget (reviewers + auditor)
+  self_dispatch_limit: 15        # flow never dispatches more than this per 5-min window
+  rosters:
+    light:  [correctness, quality_docs]
+    medium: [correctness, architecture, security, quality_docs, test_adequacy, data_flow_contracts]
+    full:   [correctness, architecture, maintainability, security, business_logic,
+             data_flow_contracts, quality_docs, test_adequacy, production_readiness]
+  activation:                    # conditional reviewers (skip when the condition is false)
+    business_logic:
+      touches: [payment, order, balance, state-machine, auth-flow]
+    data_flow_contracts:
+      touches: [migration, schema, dto, serializer, public-api]
+    production_readiness:
+      touches: [service, handler, middleware, infra]
+      requires: observability_conventions
+throttle:
+  hard_cap: 20                   # plugin-shipped agent-throttle hook (per 5-min window, per session)
+  self_limit: 15                 # verification never dispatches more than this per window
 security:
-  deterministic: []      # e.g. [gitleaks, "npm audit", semgrep] — run first in Full
+  deterministic: []              # e.g. [gitleaks, semgrep, "npm audit"] — Full, run first
+project:
+  observability_conventions: false   # set true if the project has logging/metrics/tracing norms
 paths:
   root: .superhelpers
