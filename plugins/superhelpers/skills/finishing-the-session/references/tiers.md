@@ -44,8 +44,9 @@ impact-map's flags) include it (`config.yml review.activation`):
 - **business_logic** ← payment/order/balance/state-machine/auth-flow.
 - **data_flow_contracts** ← migration/schema/DTO/serializer/public-api.
 - **production_readiness** ← service/handler/middleware/infra AND `project.observability_conventions`.
-Reviewers correctness, architecture, security, quality_docs, test_adequacy are "always" within their
-tier. A pure internal-helper refactor thus spins up none of the conditional three.
+Reviewers correctness, architecture, security, quality_docs, test_adequacy (plus maintainability in
+Full, folded into architecture at Medium) are "always" within their tier. A pure internal-helper
+refactor thus spins up none of the conditional three.
 
 ## Model per role (`config.yml`)
 - retrieval (impact-map / extraction) → **Haiku** (`retrieval_model`).
