@@ -18,5 +18,12 @@ printf '%s\n' "$changed" | grep -qiE '(^|/)tests?/|_test\.|\.test\.|spec\.' && a
 printf '%s\n' "$changed" | grep -qiE 'lock$|lock\.json|\.lock' && add_cat lockfile
 touched="[${touched%,}]"
 
-printf '{"files_changed":%s,"lines_changed":%s,"touched":%s}\n' \
-  "$files_changed" "$lines_changed" "$touched"
+hints=""
+add_hint() { hints="$hints\"$1\","; }
+printf '%s\n' "$changed" | grep -qiE 'pay|order|balance|invoice|charge|refund|wallet|ledger|auth' && add_hint business_logic
+printf '%s\n' "$changed" | grep -qiE 'migrat|schema|\.sql$|dto|serial|/api/|contract' && add_hint data_flow_contracts
+printf '%s\n' "$changed" | grep -qiE 'handler|controller|service|middleware|/infra|deploy|k8s|helm' && add_hint production_readiness
+hints="[${hints%,}]"
+
+printf '{"files_changed":%s,"lines_changed":%s,"touched":%s,"activation_hints":%s}\n' \
+  "$files_changed" "$lines_changed" "$touched" "$hints"
