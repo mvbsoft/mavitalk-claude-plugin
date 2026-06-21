@@ -19,8 +19,7 @@ review:
   full_context: graph            # graph | wide-impact (fallback for huge repos)
   confidence_floor: 0.5          # part of the soft-drop rule
   escalate_threshold: 0.7        # Critical below this → Opus adjudicator
-  max_review_agents: 10          # base-wave budget (reviewers + auditor)
-  self_dispatch_limit: 15        # flow never dispatches more than this per 5-min window
+  max_review_agents: 10          # base-wave budget (reviewers + auditor); see tiers.md "Agent budget"
   rosters:
     light:  [correctness, quality_docs]
     medium: [correctness, architecture, security, quality_docs, test_adequacy, data_flow_contracts]

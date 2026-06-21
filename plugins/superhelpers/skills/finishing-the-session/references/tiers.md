@@ -52,11 +52,15 @@ refactor thus spins up none of the conditional three.
 - retrieval (impact-map / extraction) → **Haiku** (`retrieval_model`).
 - base reviewers, auditor, sweep → **Sonnet** (`reviewer_model`).
 - Full: correctness + architecture → **Opus** (`full_reviewer_escalation`).
-- Judge + contested-finding adjudicator → **Opus** (`judge_model` / `escalate_model`), always.
+- Light may run quality_docs on the retrieval model (**Haiku**) for cost; Medium+ keep it on Sonnet.
+- Judge + contested-finding adjudicator → **Opus** (`judge_model` / `escalate_model`), always at
+  Medium and Full (Light uses lightweight main-thread dedup).
 
 ## Agent budget (three layers — see the design spec §15)
-The flow self-limits to `self_dispatch_limit` (15) dispatches per 5-min window (real peak ≈ 10–11:
-impact-map + base wave + auditor); the rest is sequenced into the next window. Hard backstops at
-CAP 20 (the plugin `agent-throttle.sh` hook + the user's machine hook) catch genuine runaways.
-Reviewers are read-only `Explore` subagents; no nested fan-out. Sweep and post-fix re-review run
-AFTER the base wave, sequenced into the next window.
+The flow self-limits to `throttle.self_limit` (15) dispatches per 5-min window; the base review wave
+itself is bounded by `max_review_agents` (10, reviewers + auditor), real peak ≈ 10–11 (impact-map +
+base wave + auditor); the rest is sequenced into the next window. Hard backstops at CAP 20
+(`throttle.hard_cap`: the plugin `agent-throttle.sh` hook + the user's machine hook) catch genuine
+runaways — note the PreToolUse hook bounds **top-level** dispatch only; nested fan-out is bounded by
+the "no nested fan-out" rule, not the hook. Reviewers are read-only `Explore` subagents. Sweep and
+post-fix re-review run AFTER the base wave, sequenced into the next window.

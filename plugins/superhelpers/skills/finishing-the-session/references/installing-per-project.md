@@ -36,7 +36,9 @@ Enabling this plugin already activates a hard agent-dispatch backstop: the plugi
 `hooks/agent-throttle.sh` (PreToolUse, CAP from `config.yml` `throttle.hard_cap`, default 20), so any
 project that enables `superhelpers@<marketplace>` gets it on any machine — it travels with the plugin,
 not with `~/.claude/`. The verification flow additionally self-limits to `throttle.self_limit` (15)
-dispatches per 5-min window.
+dispatches per 5-min window. Note: a PreToolUse hook fires for **top-level** dispatch only — it cannot
+see agents spawned inside a sub-agent, so nested fan-out is bounded by the skill's "no nested fan-out"
+rule, not by this hook.
 
 If a project wants a hard backstop **independent of the plugin** (e.g. for contributors who haven't
 enabled it), commit a project-level PreToolUse hook in `.claude/settings.json` pointing at a repo-local

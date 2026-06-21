@@ -2,7 +2,8 @@
 
 Dispatch as read-only `Explore` subagents, in parallel, each with a DIFFERENT focus. Model per role
 (`config.yml`): retrieval = Haiku, reviewers = Sonnet, Full bumps Correctness + Architecture to Opus,
-Judge = Opus. Give each reviewer the **diff + the stated session scope + the curated context from the
+Judge = Opus at Medium+ (Light uses lightweight main-thread dedup). Give each reviewer the **diff +
+the stated session scope + the curated context from the
 impact-map (Stage 2), NOT the chat history**. Prepend the reviewer's `does_not_review` line (see the
 Blind-spots matrix) so each stays in its lane.
 
@@ -46,7 +47,9 @@ Which reviewers run is set by the tier roster + conditional activation (`referen
 - **security — Security:** "Focus on authn/authz and platform security on the diff: broken access
   control, injection, SSRF, secrets in code/logs, unsafe deserialization, missing input validation at
   trust boundaries. (Deterministic scanners run separately — do not duplicate secret/CVE scanning.)
-  Business-logic abuse is a SEPARATE reviewer — do not cover it here."
+  At FULL, business-logic abuse is a SEPARATE reviewer (business_logic) — do not cover it. At MEDIUM
+  (no separate business_logic reviewer in the roster) you ALSO cover business-logic abuse on any
+  money/state-machine/auth flow the diff touches."
 - **business_logic — Business-Logic security (Full; activated):** "Hunt abuse of the business RULES,
   not platform vulns. On money/state-machine/auth flows look for: double-spend / double-credit, race
   conditions (TOCTOU, concurrent updates without locks), payment/refund abuse, quota/limit bypass,
@@ -80,7 +83,7 @@ correctness:           does_not_review: [architecture, security, style, docs, te
 quality_docs:          does_not_review: [correctness, security, architecture]
 architecture:          does_not_review: [business requirements, code style, test coverage, correctness bugs, abstractions/duplication]
 maintainability:       does_not_review: [correctness bugs, security, requirements, style]
-security:              does_not_review: [code style, architecture, business-logic abuse]
+security:              does_not_review: [code style, architecture, business-logic abuse (Full only; covered here at Medium)]
 business_logic:        does_not_review: [injection/secrets, code style, architecture]
 data_flow_contracts:   does_not_review: [code style, infra readiness, security]
 test_adequacy:         does_not_review: [production-code correctness beyond what tests assert]
@@ -104,7 +107,7 @@ requirement_auditor:   does_not_review: [code quality — only requirement↔dif
 > (truncate order, FK cascade); diagnostics/flags that report configured-intent vs runtime-reality.
 > Surface up to 8 NEW candidates, or none — do not pad, do not restate the list.
 
-## Judge (Opus ALWAYS; main thread if the session is Opus, else an isolated Opus subagent)
+## Judge (Opus for Medium+; Light = lightweight main-thread dedup. When run, use the main thread if the session is Opus, else an isolated Opus subagent)
 - **Refute pass FIRST:** for each surviving finding, confirm it against the code by quoting the exact
   line; DROP findings that are factually refuted (the code doesn't say that, or it is guarded
   elsewhere), not merely low-confidence. An unverifiable finding is not reported.
