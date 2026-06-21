@@ -18,14 +18,56 @@ while [ "$i" -le 20 ]; do
 done
 assert_empty "allows launches up to CAP (20)" "$denied_before_cap"
 
-# The 21st launch is denied.
+# The 21st launch is denied, with the full hook-output shape.
 out21="$(printf '%s' "$payload" | sh "$SCRIPT")"
-has_deny="$(printf '%s' "$out21" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)"
-assert_eq "denies the 21st launch in the window" "deny" "$has_deny"
+assert_eq "denies the 21st launch in the window" "deny" \
+  "$(printf '%s' "$out21" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
+assert_eq "deny names the PreToolUse event" "PreToolUse" \
+  "$(printf '%s' "$out21" | jq -r '.hookSpecificOutput.hookEventName // empty')"
+assert_eq "deny carries an explanatory reason" "true" \
+  "$(printf '%s' "$out21" | jq -r '(.hookSpecificOutput.permissionDecisionReason // "") | contains("throttle")')"
 
 # A different session is independent.
-out_other="$(printf '%s' '{"session_id":"other"}' | sh "$SCRIPT")"
-assert_empty "throttle is per-session" "$out_other"
+assert_empty "throttle is per-session" "$(printf '%s' '{"session_id":"other"}' | sh "$SCRIPT")"
+
+# WINDOW expiry resets the counter: pre-seed an expired window already at CAP, expect ALLOW.
+printf '%s %s\n' "$(( $(date +%s) - 400 ))" "20" > "$HOME/.superhelpers-agent-throttle-reset"
+assert_empty "allows the first launch in a fresh window after expiry" \
+  "$(printf '%s' '{"session_id":"reset"}' | sh "$SCRIPT")"
+
+# Missing session_id falls back to a shared 'nosession' bucket and still caps.
+j=1; nos_denied=""
+while [ "$j" -le 20 ]; do
+  o="$(printf '%s' '{}' | sh "$SCRIPT")"
+  [ -n "$o" ] && nos_denied="at $j"
+  j=$((j + 1))
+done
+assert_empty "nosession allows up to CAP" "$nos_denied"
+assert_eq "nosession denies at CAP+1" "deny" \
+  "$(printf '%s' '{}' | sh "$SCRIPT" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
+[ -f "$HOME/.superhelpers-agent-throttle-nosession" ] && nos_file=yes || nos_file=no
+assert_eq "nosession uses its own counter file" "yes" "$nos_file"
+
+# session_id is sanitized into a safe filename (no path traversal).
+printf '%s' '{"session_id":"../x/y"}' | sh "$SCRIPT" >/dev/null 2>&1
+[ -f "$HOME/.superhelpers-agent-throttle-xy" ] && san=yes || san=no
+assert_eq "sanitizes session_id into a safe filename" "yes" "$san"
+
+# A corrupted counter file must not crash or fail-open-by-error (treated as a fresh window).
+printf 'garbage not numbers\n' > "$HOME/.superhelpers-agent-throttle-corrupt"
+set +e
+cout="$(printf '%s' '{"session_id":"corrupt"}' | sh "$SCRIPT" 2>/dev/null)"; crc=$?
+set -e
+assert_eq "survives a corrupted counter file (exit 0)" "0" "$crc"
+assert_empty "corrupted file resets to a fresh window (allowed)" "$cout"
+
+# Unset HOME must not abort the hook (a crash here would fail OPEN — the worst mode).
+rm -f /tmp/.superhelpers-agent-throttle-homeless 2>/dev/null || true
+set +e
+printf '%s' '{"session_id":"homeless"}' | env -u HOME sh "$SCRIPT" >/dev/null 2>&1; hrc=$?
+set -e
+assert_eq "survives unset HOME (exit 0)" "0" "$hrc"
+rm -f /tmp/.superhelpers-agent-throttle-homeless 2>/dev/null || true
 
 rm -rf "$HOME"
 finish_tests
