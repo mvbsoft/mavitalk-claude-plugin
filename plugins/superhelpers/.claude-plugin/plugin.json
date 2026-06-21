@@ -15,6 +15,9 @@
     "commit"
   ],
   "hooks": {
+    "PreToolUse": [
+      { "matcher": "Agent|Task|Workflow", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/agent-throttle.sh", "timeout": 5 } ] }
+    ],
     "UserPromptSubmit": [
       { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/detect-intent.sh", "timeout": 5 } ] }
     ],
