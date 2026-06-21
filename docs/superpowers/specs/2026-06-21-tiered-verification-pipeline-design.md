@@ -94,10 +94,10 @@ a check between levels or disable it.
 Each reviewer is told explicitly what it does NOT cover, so reviewers don't duplicate each other
 or drift into group-think. Prepended to each reviewer prompt:
 
-```yaml
+```text
 correctness:           does_not_review: [architecture, security, style, docs, test design]
 quality_docs:          does_not_review: [correctness, security, architecture]
-architecture:          does_not_review: [business requirements, code style, test coverage, correctness bugs]
+architecture:          does_not_review: [business requirements, code style, test coverage, correctness bugs, abstractions/duplication]
 maintainability:       does_not_review: [correctness bugs, security, requirements, style]
 security:              does_not_review: [code style, architecture, business-logic abuse (reviewer #6)]
 business_logic:        does_not_review: [injection/secrets (reviewer #5), code style, architecture]
@@ -256,17 +256,20 @@ review:
   confidence_floor: 0.5          # part of the soft-drop rule (§8)
   escalate_threshold: 0.7        # Critical below this → Opus adjudicator
   max_review_agents: 10        # base-wave budget (reviewers + auditor); window stays within the ≤15 self-limit
-  self_dispatch_limit: 15      # the flow never dispatches more than this per 5-min window
+  # the per-window soft self-limit lives under `throttle.self_limit` (single source)
   rosters:                       # owner can move a check between levels / disable it
     light:  [correctness, quality_docs]
     medium: [correctness, architecture, security, quality_docs, test_adequacy, data_flow_contracts]
     full:   [correctness, architecture, maintainability, security, business_logic,
              data_flow_contracts, quality_docs, test_adequacy, production_readiness]
   activation:                    # conditional reviewers (skip when condition is false)
-    business_logic:       touches: [payment, order, balance, state-machine, auth-flow]
-    data_flow_contracts:  touches: [migration, schema, dto, serializer, public-api]
-    production_readiness: touches: [service, handler, middleware, infra]
-                          requires: observability_conventions
+    business_logic:
+      touches: [payment, order, balance, state-machine, auth-flow]
+    data_flow_contracts:
+      touches: [migration, schema, dto, serializer, public-api]
+    production_readiness:
+      touches: [service, handler, middleware, infra]
+      requires: observability_conventions
 throttle:
   hard_cap: 20                 # plugin-shipped agent-throttle hook (per 5-min window, per session)
   self_limit: 15               # verification never dispatches more than this per window
@@ -333,7 +336,9 @@ re-adjudicated on Opus before the final ranking. Maps to the machine's model pol
 ## 15. Agent budget, throttle & portability (three layers)
 
 The verification step is the only part of the plugin that fans out agents, so it is bounded by
-three independent layers — defense in depth, portable across machines:
+three independent layers — defense in depth, portable across machines (honest caveat: a PreToolUse
+hook observes only TOP-LEVEL dispatch, so layers 2–3 cannot see agents spawned inside a sub-agent;
+nested fan-out is bounded by the "no nested fan-out" rule of layer 1, not by the hooks):
 
 1. **Soft self-limit (plugin skill logic).** The verification flow never dispatches more than
    **15 agents per 5-min window** (real peak ≈ 10–11: impact-map + base wave + auditor); the rest

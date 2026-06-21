@@ -78,7 +78,7 @@ Which reviewers run is set by the tier roster + conditional activation (`referen
   `project.observability_conventions`)."
 
 ## Blind-spots matrix (prepend each reviewer's line via the shared preamble)
-```yaml
+```text
 correctness:           does_not_review: [architecture, security, style, docs, test design]
 quality_docs:          does_not_review: [correctness, security, architecture]
 architecture:          does_not_review: [business requirements, code style, test coverage, correctness bugs, abstractions/duplication]
