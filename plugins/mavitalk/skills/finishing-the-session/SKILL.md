@@ -15,7 +15,7 @@ description: >
 Never close a session blind. Finish only after: **VERIFY** (tiered, evidence-based) → **HAND OFF**
 (persist to `.superhelpers/`) → **COMMIT** (gated, no AI attribution). Evidence before assertion;
 re-verify now; you do not grade your own exam. All `.superhelpers` artifacts are English; converse in
-the user's language. Announce: "Using superhelpers:finishing-the-session — assess, review, fix,
+the user's language. Announce: "Using mavitalk:finishing-the-session — assess, review, fix,
 commit, hand off."
 
 ## Phase 0 — Intent + tier proposal

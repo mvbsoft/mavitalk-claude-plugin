@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # PreToolUse rate-limiter for the Agent / Task / Workflow tools — PER SESSION.
-# Portable copy shipped with the superhelpers plugin so a project that enables the
+# Portable copy shipped with the mavitalk plugin so a project that enables the
 # plugin gets a hard backstop on any machine (does not depend on ~/.claude/).
 #
 # Bounds DIRECT main-session dispatch only (PreToolUse does not fire inside sub-agents;
@@ -40,6 +40,6 @@ n=$(( n + 1 ))
 printf '%s %s\n' "$ts" "$n" > "${F}.tmp.$$" 2>/dev/null && mv "${F}.tmp.$$" "$F" 2>/dev/null
 
 if [ "$n" -gt "$CAP" ]; then
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"superhelpers agent throttle: more than %s Agent/Task/Workflow launches within %ss in this session. Sequence the work into the next window, do research inline (Explore / WebSearch), or ask the owner before fanning out more."}}\n' "$CAP" "$WINDOW"
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"mavitalk agent throttle: more than %s Agent/Task/Workflow launches within %ss in this session. Sequence the work into the next window, do research inline (Explore / WebSearch), or ask the owner before fanning out more."}}\n' "$CAP" "$WINDOW"
 fi
 exit 0

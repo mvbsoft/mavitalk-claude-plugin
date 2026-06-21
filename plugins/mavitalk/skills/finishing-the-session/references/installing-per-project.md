@@ -18,7 +18,7 @@ Commit to the project's `.claude/settings.json`:
       "source": { "source": "github", "repo": "<your-github-user>/mavitalk-claude-plugin" }
     }
   },
-  "enabledPlugins": { "superhelpers@mavitalk-claude-plugin": true }
+  "enabledPlugins": { "mavitalk@mavitalk-claude-plugin": true }
 }
 ```
 
@@ -29,12 +29,12 @@ instead of `github`:
 ## 3. Keep CLAUDE.md lean
 Remove any old step-by-step "how to end a session" text — that procedure now lives in this skill.
 Keep only facts: gate commands (or in `config.yml`), language convention, and a one-line pointer:
-`Session end → superhelpers:finishing-the-session`.
+`Session end → mavitalk:finishing-the-session`.
 
 ## 4. Agent-throttle backstop (portable)
 Enabling this plugin already activates a hard agent-dispatch backstop: the plugin ships
 `hooks/agent-throttle.sh` (PreToolUse, CAP from `config.yml` `throttle.hard_cap`, default 20), so any
-project that enables `superhelpers@<marketplace>` gets it on any machine — it travels with the plugin,
+project that enables `mavitalk@<marketplace>` gets it on any machine — it travels with the plugin,
 not with `~/.claude/`. The verification flow additionally self-limits to `throttle.self_limit` (15)
 dispatches per 5-min window. Note: a PreToolUse hook fires for **top-level** dispatch only — it cannot
 see agents spawned inside a sub-agent, so nested fan-out is bounded by the skill's "no nested fan-out"

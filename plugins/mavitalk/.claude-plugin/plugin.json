@@ -1,11 +1,11 @@
 {
-  "name": "superhelpers",
+  "name": "mavitalk",
   "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently bundles: finishing-the-session (tiered, gated end-of-session pipeline) and continue-session (resume prior-session context).",
   "author": {
     "name": "malina"
   },
   "keywords": [
-    "superhelpers",
+    "mavitalk",
     "workflow",
     "skills",
     "session",

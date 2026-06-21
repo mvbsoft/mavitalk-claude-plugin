@@ -4,12 +4,12 @@
     "name": "malina"
   },
   "metadata": {
-    "description": "Personal Claude Code plugin marketplace. Hosts the `superhelpers` plugin — a bundle of reusable, project-agnostic workflow skills shared across all repos and machines."
+    "description": "Personal Claude Code plugin marketplace. Hosts the `mavitalk` plugin — a bundle of reusable, project-agnostic workflow skills shared across all repos and machines."
   },
   "plugins": [
     {
-      "name": "superhelpers",
-      "source": "./plugins/superhelpers",
+      "name": "mavitalk",
+      "source": "./plugins/mavitalk",
       "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently includes finishing-the-session (end-of-session wrap-up: independent verification + next-session handoff + clean commit). Project-agnostic — each skill reads gates/conventions/language from the project's CLAUDE.md."
     }
   ]
