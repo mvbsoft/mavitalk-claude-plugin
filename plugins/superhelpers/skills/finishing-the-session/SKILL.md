@@ -22,14 +22,19 @@ commit, hand off."
 1. Read `.superhelpers/config.yml` (gates, language, attribution, review settings). If `.superhelpers/`
    is missing, offer to scaffold it from the plugin `templates/superhelpers/`, then continue.
 2. Snapshot live state: `git status --short` · `git log --oneline -5` · branch.
-3. Run the assessment in `references/tiers.md` and **propose a tier** (Light/Medium/Full or skip).
-   Ask the developer with `AskUserQuestion`; they make the final choice.
+3. Run the assessment in `references/tiers.md` (signals incl. `activation_hints` → proposed
+   Light/Medium/Full, or skip) and **propose a tier**. Ask with `AskUserQuestion`; the developer
+   makes the final choice.
 
 ## Phase 1 — VERIFY
-Follow `references/verification-rubric.md`: deterministic gates (paste numbers; red → STOP) →
-requirement traceability → tiered review (`references/tiers.md` + `references/reviewer-prompts.md`) →
-aggregate (Judge, main thread) → fix Critical/Important via TDD → re-run gates (last green post-dates
-last edit; Full re-reviews changed files).
+Follow `references/verification-rubric.md`: deterministic gates (paste numbers; red → STOP; Full runs
+the security suite first) → context build (Medium+ impact-map; Full full-graph) → requirement
+traceability (isolated auditor) → tiered review of the activated reviewers (`references/tiers.md` +
+`references/reviewer-prompts.md`, each with its blind-spots line) → aggregate (Opus Judge: refute-first,
+soft-drop, escalate contested Criticals/conflicts to an Opus adjudicator, genuine conflicts to you) →
+fix Critical/Important via TDD → re-run gates (last green post-dates last edit; Full re-reviews changed
+files). Self-limit dispatch to 15 agents / 5-min window; the plugin's agent-throttle hook (CAP 20) is
+the hard backstop.
 
 ## Phase 2 — HAND OFF
 Persist per `references/commit-and-persist.md`: session log, project-memory (Active context only),
@@ -88,7 +93,7 @@ all three phases are done with evidence.
 ## References
 
 - `references/tiers.md` — the assessment (signals → proposed tier) and the Light/Medium/Full composition + agent budget.
-- `references/reviewer-prompts.md` — the 4 base reviewer prompts, the Requirement Auditor, and the Judge.
+- `references/reviewer-prompts.md` — the 9-reviewer roster, blind-spots matrix, impact-map producer, Requirement Auditor, Sweep, and the Opus refute-first Judge.
 - `references/commit-and-persist.md` — the commit gate (no attribution) and the `.superhelpers/` persistence rules.
 - `references/verification-rubric.md` — the gates→traceability→tiered-review→aggregate sequence.
 - `references/handoff-template.md` — the full next-session field template.
