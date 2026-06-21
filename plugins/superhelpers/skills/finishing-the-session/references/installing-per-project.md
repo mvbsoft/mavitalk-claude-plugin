@@ -30,3 +30,20 @@ instead of `github`:
 Remove any old step-by-step "how to end a session" text — that procedure now lives in this skill.
 Keep only facts: gate commands (or in `config.yml`), language convention, and a one-line pointer:
 `Session end → superhelpers:finishing-the-session`.
+
+## 4. Agent-throttle backstop (portable)
+Enabling this plugin already activates a hard agent-dispatch backstop: the plugin ships
+`hooks/agent-throttle.sh` (PreToolUse, CAP from `config.yml` `throttle.hard_cap`, default 20), so any
+project that enables `superhelpers@<marketplace>` gets it on any machine — it travels with the plugin,
+not with `~/.claude/`. The verification flow additionally self-limits to `throttle.self_limit` (15)
+dispatches per 5-min window.
+
+If a project wants a hard backstop **independent of the plugin** (e.g. for contributors who haven't
+enabled it), commit a project-level PreToolUse hook in `.claude/settings.json` pointing at a repo-local
+copy of `agent-throttle.sh`:
+
+    "hooks": { "PreToolUse": [ { "matcher": "Agent|Task|Workflow",
+      "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-throttle.sh\"" } ] } ] }
+
+Two registered hooks (machine + project) both fire and both deny at their own CAP — harmless when both
+are 20.
