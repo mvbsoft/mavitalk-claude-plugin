@@ -6,6 +6,7 @@
   "metadata": {
     "description": "Personal Claude Code plugin marketplace. Hosts the `mavitalk` plugin — a bundle of reusable, project-agnostic workflow skills shared across all repos and machines."
   },
+  "allowCrossMarketplaceDependenciesOn": ["superpowers-dev"],
   "plugins": [
     {
       "name": "mavitalk",
