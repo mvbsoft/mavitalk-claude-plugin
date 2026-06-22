@@ -6,7 +6,7 @@ description: Use when deciding whether a change needs functional tests — a beh
 # When tests are owed
 
 Tests are **owed** for any change with testable production behaviour; they may be **skipped**
-only when the diff has none. This is the condensed form of CLAUDE.md Hard rule #14.
+only when the diff has none. This is the condensed form of your project's hard rules on test discipline.
 
 ## Owed (write the full matrix)
 
@@ -24,4 +24,4 @@ nothing a functional test could assert.
 ## Never
 
 Never skip tests to save effort on real behaviour. Never write sham tests (no assertions /
-always-green). A red test means a real bug — investigate the code first (CLAUDE.md §12, 2026-05-30).
+always-green). A red test means a real bug — investigate the code first (per your project's hard rules on test discipline).
