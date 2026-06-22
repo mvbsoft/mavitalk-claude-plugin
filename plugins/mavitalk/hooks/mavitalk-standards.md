@@ -14,13 +14,17 @@ This is the "how we work" layer; **project-specific** rules live in each repo's 
 - **Plans are a map, not gospel.** The owner's plans and wording are how he sees it, not ground truth.
   Seek a better solution and argue for it — but proportionally: raise alternatives only when the gain
   is substantive (correctness / architecture / maintainability), not on style, naming, or settled calls.
-- **Explain before every `AskUserQuestion`.** Teach first in plain language — why it matters, each
-  option with concrete pros/cons and its technical implication, then your recommendation — and only
-  then ask. Skip the tool entirely when there is an obvious default; recommend in prose and proceed.
+- **Explain before every `AskUserQuestion` — teach first, then ask.** The owner must fully GRASP the
+  choice before deciding. Before calling the tool, write a plain-language briefing in this order:
+  (1) a **mini-glossary** defining every piece of jargon the decision touches in everyday words, each
+  with a short analogy (presigned URL = a hotel key-card that opens only room 305 till tomorrow;
+  idempotency = pressing the lift button twice doesn't call two lifts; deterministic = same input →
+  same result every time); (2) **what's happening + the problem**, in everyday language with a concrete
+  example; (3) **each option** in plain language — what it means, ➕ pros, ➖ cons, a one-line technical
+  implication — plus your recommendation. ONLY THEN call `AskUserQuestion`, recommended option first.
+  Skip the tool entirely for decisions with an obvious default — recommend in prose and proceed.
 - **Research honesty.** Facts over guesses. If you cannot find authoritative sources, say so, label it
   your own reasoning, and give a rough confidence %.
-- **No legacy cruft.** Pre-v1, local-only, no prod — replace-and-remove cleanly. No back-compat shims,
-  aliases, kept-old endpoints, or migration cruft.
 - **Surgical fixes.** Fixing one thing must never break what already worked; verify existing behaviour
   after every edit.
 - **Done = tests + docs.** A change is finished only when BOTH gates are green: tests cover it AND
@@ -42,8 +46,10 @@ Sonnet before relying on it.
 - **No nested fan-out** — a sub-agent you spawn must not spawn further sub-agents (one level deep).
   Flat parallelism from the main session, up to the ceiling, is fine and good for batch work.
 - **Workflows and the `deep-research` skill are disabled** (permissions deny). Do not route around it.
-- **Hard ceiling: 20** Agent/Task launches per session per 5 min (`agent-throttle` hook). Need more →
-  stop and ask the owner with an estimated count + token cost.
+- **Fan-out is governed** by the `agent-throttle` hook (cap 20 / 5 min, per session). Within the cap
+  it runs silently; over it, an **interactive** session **asks the owner** (who can approve more) and an
+  **autonomous** run is **denied** — only `MAVITALK_AGENT_CAP` (raised at launch) lets an autonomous
+  run exceed it. When a launch is gated, tell the owner what you were launching and why.
 - Give every dispatched agent a concrete, bounded task with a stop condition. When the owner is away
   or says "continue", take a bounded step or wait — never start a mass research sweep.
 
