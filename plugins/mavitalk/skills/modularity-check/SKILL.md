@@ -1,6 +1,6 @@
 ---
 name: modularity-check
-description: Use when designing any new logic, subsystem, or capability and deciding HOW to structure it — a modular plugin family (registry / plugin / strategy; handler / validator / watcher / notifier / exporter; "add a new kind", "extensible", "open for extension, closed for modification"), a single injected I/O seam (a Protocol mocked for offline tests), or simple direct code (an if/match or a plain function). Advises 🟢 modular family / 🔵 single seam / 🟡 not-yet / 🔴 simple — plain-language reasons, examples, pros, cons, risks — and pushes back BOTH ways (talks the owner out of needless abstraction, or into a clearly-worthwhile one) even on a direct "make it modular". The owner always decides. Triggers at new-feature design, on an extensibility smell, or on request ("design this modularly", "should this be modular?").
+description: Use when deciding HOW to structure new logic — a modular plugin family, a single injected I/O seam, or plain direct code. Advises 🟢/🔵/🟡/🔴 with reasons, pushes back both ways (against needless abstraction and against missed opportunity), owner decides.
 ---
 
 # Modularity Check — plugin family · single seam · simple code
@@ -131,8 +131,9 @@ trigger" line; the recommendation is yours, the **decision is always the owner's
 - Deciding for the owner — you advise; present the verdict and let the owner choose.
 
 ## Build recipe & examples
-- **Build recipe (on a 🟢)** — `docs/architecture/ADR-005-modular-plugin-pattern.md` (the nine-beat
-  canonical shape). A 🔵 seam is the same `Protocol`-injection **without** the registry (one impl).
+- **Build recipe (on a 🟢)** — see your project's ADR-005 or equivalent build-recipe doc (if present)
+  for the canonical shape (typically: `*Spec` + `*Registry` + `bootstrap`). A 🔵 seam is the same
+  `Protocol`-injection **without** the registry (one impl).
 - **Examples** — 🟢 `providers/` · 🔵 single-strategy / test seams · 🟡 deferred families · 🔴
   `parse_retention`: see repo-local `references/examples-from-this-repo.md` if present.
 - **Attributed signals + 6 maxims** (Metz, Fowler, Ousterhout, Dodds, Rule of Three):
