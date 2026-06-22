@@ -7,7 +7,7 @@
   },
   "version": "1.0.0",
   "name": "mavitalk",
-  "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently bundles: finishing-the-session (tiered, gated end-of-session pipeline) and continue-session (resume prior-session context).",
+  "description": "Project-agnostic Claude Code workflow layer: bundles workflow skills (finishing-the-session, continue-session), injects the cross-project standards (how we work) at session start, and governs sub-agent fan-out (agent throttle).",
   "author": {
     "name": "malina"
   },
@@ -29,7 +29,8 @@
       { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/detect-intent.sh", "timeout": 5 } ] }
     ],
     "SessionStart": [
-      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-next-session.sh", "timeout": 5 } ] }
+      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-next-session.sh", "timeout": 5 } ] },
+      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-standards.sh", "timeout": 5 } ] }
     ]
   }
 }
