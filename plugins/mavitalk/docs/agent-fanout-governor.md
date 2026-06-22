@@ -67,10 +67,17 @@ inert in headless, so the discriminator must be correct, not best-effort.
 
 ## Scope
 
-- **Phase 1 (lean, build now):** Layer 1 rule + Layer 2 mode-aware hook (`ask` interactive / `deny`
-  over cap autonomous) + env and session-flag pre-authorization. No `updatedInput`.
-- **Phase 2 (later):** `updatedInput` auto-policy (e.g. refuse `opus` for sub-agents, trim count) —
-  only if unknown #1 is positive.
+- **Phase 1 (built).** Mode-aware `agent-throttle.sh`: within the cap it allows silently; over the cap
+  an interactive session (`permission_mode` default/plan/acceptEdits) returns `ask`, while an
+  autonomous run (bypassPermissions / `MAVITALK_HEADLESS=1` / unknown mode) returns `deny`.
+  `MAVITALK_AGENT_CAP` raises the cap and `MAVITALK_AGENT_NOASK=1` lifts the gate (launch-time
+  pre-authorization). There is **no proactive per-fan-out prompt below the cap** — the cap is the only
+  gate, so ordinary single/few-agent work is never interrupted. The unknown about whether the hook
+  sees the agent model/type did **not** block this build (interactive detection uses `permission_mode`,
+  not the agent params).
+- **Phase 2 (later):** in-prompt interactive pre-authorization ("allow N, don't ask") via a
+  session-keyed flag or a slash command; and `updatedInput` auto-policy (refuse `opus` for sub-agents,
+  trim count) — the latter only if PreToolUse turns out to expose the agent's model/type.
 
 ## Invariants
 
