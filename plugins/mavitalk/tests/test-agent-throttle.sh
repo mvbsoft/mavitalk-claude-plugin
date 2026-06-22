@@ -70,4 +70,20 @@ assert_eq "survives unset HOME (exit 0)" "0" "$hrc"
 rm -f /tmp/.superhelpers-agent-throttle-homeless 2>/dev/null || true
 
 rm -rf "$HOME"
+
+# MAVITALK_AGENT_CAP overrides the built-in cap — a lower value must trigger denial sooner.
+# Use a fresh isolated HOME so this bucket never collides with the tests above.
+CAP_HOME="$(mktemp -d)"
+cap_sid="cap-override-test"
+cap_payload='{"session_id":"'"$cap_sid"'"}'
+i=1
+while [ "$i" -le 2 ]; do
+  (HOME="$CAP_HOME" MAVITALK_AGENT_CAP=2 printf '%s' "$cap_payload" | HOME="$CAP_HOME" MAVITALK_AGENT_CAP=2 sh "$SCRIPT") >/dev/null
+  i=$((i + 1))
+done
+cap_out="$(HOME="$CAP_HOME" MAVITALK_AGENT_CAP=2 printf '%s' "$cap_payload" | HOME="$CAP_HOME" MAVITALK_AGENT_CAP=2 sh "$SCRIPT")"
+rm -rf "$CAP_HOME"
+assert_eq "MAVITALK_AGENT_CAP overrides cap (deny at 3rd when cap=2)" "deny" \
+  "$(printf '%s' "$cap_out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
+
 finish_tests

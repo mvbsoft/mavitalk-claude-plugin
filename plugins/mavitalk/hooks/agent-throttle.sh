@@ -10,7 +10,9 @@
 # never abort the script, because a non-zero exit here would let the dispatch through.
 set -u
 
-CAP=20        # keep in sync with config.yml throttle.hard_cap
+# cap: env override (positive integer) else default 20
+CAP="${MAVITALK_AGENT_CAP:-20}"
+case "$CAP" in (*[!0-9]*|'') CAP=20 ;; esac
 WINDOW=300    # rolling window, seconds
 
 input=$(cat)
