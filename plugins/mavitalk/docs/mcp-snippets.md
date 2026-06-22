@@ -32,10 +32,19 @@ divergent copies form.
 "linear-server": { "type": "http", "url": "https://mcp.linear.app/mcp" }
 ```
 
-## postgres (connection string via `${<REPO>_DATABASE_URL}`)
+## postgres (connection string via the repo's own DB env var — never a literal)
 
-Replace `<REPO>` with the service name, e.g. `MAVITALK_BE_DATABASE_URL`,
-`MAVITALK_SPECTRUM_DATABASE_URL`, `MAVITALK_AGENTS_DATABASE_URL`.
+Unlike `serena`/`github`/`linear-server` (byte-identical across repos), the postgres
+connection is **inherently per-repo**: each service references its own real DB env var,
+never a literal connection string. The actual vars in use today:
+
+- **be** — discrete vars assembled into the DSN: `${POSTGRES_USER}` · `${POSTGRES_PASSWORD}`
+  · `${POSTGRES_PORT}` · `${POSTGRES_DB}`
+- **spectrum** — `${APP_DB_URL}`
+- **agents** — `${MAVITALK_DB_DSN}`
+
+The template below uses `${<REPO>_DATABASE_URL}` as a placeholder; substitute the repo's
+real var (above) when copying.
 
 ```json
 "postgres": {
@@ -47,10 +56,10 @@ Replace `<REPO>` with the service name, e.g. `MAVITALK_BE_DATABASE_URL`,
 
 ## Which repo gets which
 
-- **be** — serena · linear-server · github · postgres (`${MAVITALK_BE_DATABASE_URL}`)
+- **be** — serena · linear-server · github · postgres (DSN from `${POSTGRES_USER}`/`${POSTGRES_PASSWORD}`/`${POSTGRES_PORT}`/`${POSTGRES_DB}`)
 - **fe** — serena · linear-server · github
-- **spectrum** — serena · postgres (`${MAVITALK_SPECTRUM_DATABASE_URL}`)
-- **agents** — serena · postgres (`${MAVITALK_AGENTS_DATABASE_URL}`) — no github/linear: the
+- **spectrum** — serena · postgres (`${APP_DB_URL}`)
+- **agents** — serena · postgres (`${MAVITALK_DB_DSN}`) — no github/linear: the
   orchestrator runs agent hops with zero MCP by design; it reaches GitHub through the `gh`
   CLI and Linear through an in-code HTTP transport.
 
