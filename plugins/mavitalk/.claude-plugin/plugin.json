@@ -5,6 +5,7 @@
   "mcpServers": {
     "context7": { "type": "http", "url": "https://mcp.context7.com/mcp" }
   },
+  "version": "1.0.0",
   "name": "mavitalk",
   "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently bundles: finishing-the-session (tiered, gated end-of-session pipeline) and continue-session (resume prior-session context).",
   "author": {
