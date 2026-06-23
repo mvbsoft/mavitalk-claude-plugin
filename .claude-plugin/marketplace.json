@@ -11,7 +11,7 @@
     {
       "name": "mavitalk",
       "source": "./plugins/mavitalk",
-      "description": "Bundle of reusable, project-agnostic Claude Code workflow skills. Currently includes finishing-the-session (end-of-session wrap-up: independent verification + next-session handoff + clean commit). Project-agnostic — each skill reads gates/conventions/language from the project's CLAUDE.md."
+      "description": "Bundle of reusable, project-agnostic Claude Code workflow skills plus user-only session commands (/mavitalk:start-session, /mavitalk:end-session) for resume and end-of-session wrap-up (independent verification + handoff + clean commit). Each skill reads gates/conventions/language from the project's CLAUDE.md."
     }
   ]
 }

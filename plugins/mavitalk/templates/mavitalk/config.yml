@@ -1,6 +1,6 @@
-# superhelpers configuration. All .superhelpers artifacts are stored in English.
+# mavitalk session-state configuration. All .mavitalk artifacts are stored in English.
 language:
-  artifacts: en          # .superhelpers files + commit messages
+  artifacts: en          # .mavitalk files + commit messages
   conversation: auto     # detect from the user's message
 attribution:
   commit: none           # none | ai-assisted | co-authored
@@ -41,4 +41,4 @@ security:
 project:
   observability_conventions: false   # set true if the project has logging/metrics/tracing norms
 paths:
-  root: .superhelpers
+  root: .mavitalk

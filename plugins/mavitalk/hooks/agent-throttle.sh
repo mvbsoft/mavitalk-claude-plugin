@@ -40,7 +40,7 @@ case "$pmode" in default|plan|acceptEdits) interactive=1 ;; esac
 noask=0
 [ "${MAVITALK_AGENT_NOASK:-}" = "1" ] && noask=1
 
-F="${HOME:-/tmp}/.superhelpers-agent-throttle-${sid}"
+F="${HOME:-/tmp}/.mavitalk-agent-throttle-${sid}"
 now=$(date +%s 2>/dev/null)
 case "$now" in *[!0-9]*|'') now=0 ;; esac   # date +%s unavailable → degrade to fail-safe counting
 ts=0; n=0

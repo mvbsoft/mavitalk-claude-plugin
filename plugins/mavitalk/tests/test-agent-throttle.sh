@@ -32,7 +32,7 @@ assert_eq "deny reason names the cap" "true" \
 assert_empty "throttle is per-session" "$(printf '%s' '{"session_id":"other"}' | sh "$SCRIPT")"
 
 # WINDOW expiry resets the counter: pre-seed an expired window already at CAP, expect ALLOW.
-printf '%s %s\n' "$(( $(date +%s) - 400 ))" "20" > "$HOME/.superhelpers-agent-throttle-reset"
+printf '%s %s\n' "$(( $(date +%s) - 400 ))" "20" > "$HOME/.mavitalk-agent-throttle-reset"
 assert_empty "allows the first launch in a fresh window after expiry" \
   "$(printf '%s' '{"session_id":"reset"}' | sh "$SCRIPT")"
 
@@ -46,16 +46,16 @@ done
 assert_empty "nosession allows up to CAP" "$nos_denied"
 assert_eq "nosession denies at CAP+1" "deny" \
   "$(printf '%s' '{}' | sh "$SCRIPT" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-[ -f "$HOME/.superhelpers-agent-throttle-nosession" ] && nos_file=yes || nos_file=no
+[ -f "$HOME/.mavitalk-agent-throttle-nosession" ] && nos_file=yes || nos_file=no
 assert_eq "nosession uses its own counter file" "yes" "$nos_file"
 
 # session_id is sanitized into a safe filename (no path traversal).
 printf '%s' '{"session_id":"../x/y"}' | sh "$SCRIPT" >/dev/null 2>&1
-[ -f "$HOME/.superhelpers-agent-throttle-xy" ] && san=yes || san=no
+[ -f "$HOME/.mavitalk-agent-throttle-xy" ] && san=yes || san=no
 assert_eq "sanitizes session_id into a safe filename" "yes" "$san"
 
 # A corrupted counter file must not crash or fail-open-by-error (treated as a fresh window).
-printf 'garbage not numbers\n' > "$HOME/.superhelpers-agent-throttle-corrupt"
+printf 'garbage not numbers\n' > "$HOME/.mavitalk-agent-throttle-corrupt"
 set +e
 cout="$(printf '%s' '{"session_id":"corrupt"}' | sh "$SCRIPT" 2>/dev/null)"; crc=$?
 set -e
@@ -63,12 +63,12 @@ assert_eq "survives a corrupted counter file (exit 0)" "0" "$crc"
 assert_empty "corrupted file resets to a fresh window (allowed)" "$cout"
 
 # Unset HOME must not abort the hook (a crash here would fail OPEN — the worst mode).
-rm -f /tmp/.superhelpers-agent-throttle-homeless 2>/dev/null || true
+rm -f /tmp/.mavitalk-agent-throttle-homeless 2>/dev/null || true
 set +e
 printf '%s' '{"session_id":"homeless"}' | env -u HOME sh "$SCRIPT" >/dev/null 2>&1; hrc=$?
 set -e
 assert_eq "survives unset HOME (exit 0)" "0" "$hrc"
-rm -f /tmp/.superhelpers-agent-throttle-homeless 2>/dev/null || true
+rm -f /tmp/.mavitalk-agent-throttle-homeless 2>/dev/null || true
 
 rm -rf "$HOME"
 

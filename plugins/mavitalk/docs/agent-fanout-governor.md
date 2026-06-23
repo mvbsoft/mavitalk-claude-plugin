@@ -46,7 +46,7 @@ part (it knows the plan and can re-plan in chat) because the hook cannot render 
 - **Interactive** → return `permissionDecision: "ask"` with a reason describing the launch, so even if
   the agent skipped the rule the owner still gets a gate. The owner can approve beyond 20.
 - **Autonomous** → current behavior: count, `deny` over cap.
-- Per-session override flag: `${HOME}/.superhelpers-agent-override-<sid>` holding `CAP=<n> NOASK=<0|1>`,
+- Per-session override flag: `${HOME}/.mavitalk-agent-override-<sid>` holding `CAP=<n> NOASK=<0|1>`,
   written by the agent when the prompt pre-authorizes; read by the hook. (Agent-mediated, hook-honored.)
 
 ## Mode detection (to pin empirically — see unknowns)

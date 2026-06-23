@@ -5,9 +5,9 @@
   "mcpServers": {
     "context7": { "type": "http", "url": "https://mcp.context7.com/mcp" }
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "mavitalk",
-  "description": "Project-agnostic Claude Code workflow layer: bundles workflow skills (finishing-the-session, continue-session), injects the cross-project standards (how we work) at session start, and governs sub-agent fan-out (agent throttle).",
+  "description": "Project-agnostic Claude Code workflow layer: ships shared discipline skills plus user-only session commands (start-session, end-session), injects the cross-project standards (how we work) at session start, and governs sub-agent fan-out (agent throttle).",
   "author": {
     "name": "malina"
   },
@@ -25,11 +25,7 @@
     "PreToolUse": [
       { "matcher": "Agent|Task|Workflow", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/agent-throttle.sh", "timeout": 5 } ] }
     ],
-    "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/detect-intent.sh", "timeout": 5 } ] }
-    ],
     "SessionStart": [
-      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-next-session.sh", "timeout": 5 } ] },
       { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-standards.sh", "timeout": 5 } ] }
     ]
   }

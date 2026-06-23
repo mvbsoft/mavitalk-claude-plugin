@@ -1,11 +1,11 @@
 # Installing per project
 
 This skill is the single source of the session-finishing procedure. Each project keeps only the
-FACTS it needs, in `.superhelpers/config.yml` (scaffolded from the plugin templates).
+FACTS it needs, in `.mavitalk/config.yml` (scaffolded from the plugin templates).
 
-## 1. Scaffold `.superhelpers/`
-On first finish in a project without `.superhelpers/`, copy `templates/superhelpers/` into the repo
-root as `.superhelpers/` (rename `gitignore` → `.gitignore`). Fill `config.yml` `gates:` with the
+## 1. Scaffold `.mavitalk/`
+On first finish in a project without `.mavitalk/`, copy `templates/mavitalk/` into the repo
+root as `.mavitalk/` (rename `gitignore` → `.gitignore`). Fill `config.yml` `gates:` with the
 project's commands (or leave blank for stack autodetection).
 
 ## 2. Auto-enable the plugin (optional)
@@ -29,7 +29,7 @@ instead of `github`:
 ## 3. Keep CLAUDE.md lean
 Remove any old step-by-step "how to end a session" text — that procedure now lives in this skill.
 Keep only facts: gate commands (or in `config.yml`), language convention, and a one-line pointer:
-`Session end → mavitalk:finishing-the-session`.
+`Session end → /mavitalk:end-session`.
 
 ## 4. Agent-throttle backstop (portable)
 Enabling this plugin already activates a hard agent-dispatch backstop: the plugin ships

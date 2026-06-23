@@ -5,10 +5,12 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 M="$DIR/../.claude-plugin/plugin.json"
 
 assert_eq "manifest is valid JSON" "ok" "$(jq -e . "$M" >/dev/null 2>&1 && echo ok || echo bad)"
-assert_eq "registers UserPromptSubmit hook" "ok" \
-  "$(jq -e '.hooks.UserPromptSubmit' "$M" >/dev/null 2>&1 && echo ok || echo bad)"
+assert_eq "no UserPromptSubmit hook (lifecycle is command-only)" "ok" \
+  "$(jq -e '.hooks.UserPromptSubmit' "$M" >/dev/null 2>&1 && echo bad || echo ok)"
 assert_eq "registers SessionStart hook" "ok" \
   "$(jq -e '.hooks.SessionStart' "$M" >/dev/null 2>&1 && echo ok || echo bad)"
+assert_eq "SessionStart is only inject-standards (no next-session injection)" "inject-standards.sh" \
+  "$(jq -r '[.hooks.SessionStart[].hooks[].command | sub(".*/";"")] | unique | join(",")' "$M")"
 assert_eq "registers PreToolUse agent-throttle hook" "ok" \
   "$(jq -e '.hooks.PreToolUse' "$M" >/dev/null 2>&1 && echo ok || echo bad)"
 assert_eq "PreToolUse matcher covers Agent|Task|Workflow" "Agent|Task|Workflow" \

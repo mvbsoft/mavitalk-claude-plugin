@@ -14,7 +14,7 @@ Quality first (~99%). But token spend is a budget, not free: if you can keep ~95
 **Right-size the levers:**
 - **Agents / fan-out:** prefer inline reading, `Grep`, and `WebSearch` for ordinary lookups; dispatch sub-agents only for genuinely parallel, bounded work. Never exceed the throttle; never fan out "just in case".
 - **Research:** look up only what you don't know AND that changes the answer; label confidence instead of over-researching established facts.
-- **Verification tier** (`finishing-the-session`): Light/skip for trivial+small; Medium/Full only for substantial or risky work.
+- **Verification tier** (`/mavitalk:end-session`): Light/skip for trivial+small; Medium/Full only for substantial or risky work.
 - **Context:** reuse what's already loaded; don't re-read files you've read; don't re-derive settled decisions.
 - **Output:** complete and correct, not padded; no exploratory rewrites of working code unless asked.
 

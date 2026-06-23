@@ -1,30 +1,30 @@
 ---
-name: finishing-the-session
+name: end-session
 description: >
-  Use when the user asks to end, close, finish, or wrap up the current interactive coding session,
-  or to prepare a handoff for the next session. Trigger phrases include "завершуємо сесію",
-  "закінчуємо сесію", "завершуй сесію", "finish the session", "wrap up", "wrap it up", "done for
-  today", "that's it for this session", "close this session", "prepare for the next session",
-  "hand off". Works in ANY project (Python / PHP / JavaScript) — it reads each project's gates,
-  language, and settings from .superhelpers/config.yml (falling back to CLAUDE.md / stack autodetect).
+  End / wrap up the current coding session and prepare the handoff. Invoke explicitly with
+  /mavitalk:end-session (you may append corrections, e.g. /mavitalk:end-session recheck the tests
+  before committing). Works in ANY project (Python / PHP / JavaScript) — it reads each project's
+  gates, language, and settings from .mavitalk/config.yml (falling back to CLAUDE.md / stack autodetect).
+disable-model-invocation: true
 ---
 
-# Finishing the session
+# End session
+
+This is a **user-only** command — run it when you decide to close the session; it never fires on its own.
 
 ## Overview
 Never close a session blind. Finish only after: **VERIFY** (tiered, evidence-based) → **HAND OFF**
-(persist to `.superhelpers/`) → **COMMIT** (gated, no AI attribution). Evidence before assertion;
-re-verify now; you do not grade your own exam. All `.superhelpers` artifacts are English; converse in
-the user's language. Announce: "Using mavitalk:finishing-the-session — assess, review, fix,
-commit, hand off."
+(persist to `.mavitalk/`) → **COMMIT** (gated, no AI attribution). Evidence before assertion;
+re-verify now; you do not grade your own exam. All `.mavitalk` artifacts are English; converse in
+the user's language. Announce: "Using mavitalk:end-session — assess, review, fix, commit, hand off."
 
 ## Phase 0 — Intent + tier proposal
-1. Read `.superhelpers/config.yml` (gates, language, attribution, review settings). If `.superhelpers/`
-   is missing, offer to scaffold it from the plugin `templates/superhelpers/`, then continue.
+1. Read `.mavitalk/config.yml` (gates, language, attribution, review settings). If `.mavitalk/`
+   is missing, offer to scaffold it from the plugin `templates/mavitalk/`, then continue.
 2. Snapshot live state: `git status --short` · `git log --oneline -5` · branch.
 3. Run the assessment in `references/tiers.md` (signals incl. `activation_hints` → proposed
    Light/Medium/Full, or skip) and **propose a tier**. Ask with `AskUserQuestion`; the developer
-   makes the final choice.
+   makes the final choice. If the user appended corrections to the command, fold them in.
 
 ## Phase 1 — VERIFY
 Follow `references/verification-rubric.md`: deterministic gates (paste numbers; red → STOP; Full runs
@@ -50,7 +50,7 @@ AI attribution**. Never push unless asked.
 
 ## Phase 4 — Report
 Gate numbers · traceability table (item → evidence; OPEN) · review verdict (focuses + Critical/Important
-found & fixed) · committed SHA or "staged, awaiting ok" · which `.superhelpers` files were updated.
+found & fixed) · committed SHA or "staged, awaiting ok" · which `.mavitalk` files were updated.
 
 ## Rationalizations — STOP if you think these (from baseline testing)
 
@@ -95,7 +95,7 @@ all three phases are done with evidence.
 
 - `references/tiers.md` — the assessment (signals → proposed tier) and the Light/Medium/Full composition + agent budget.
 - `references/reviewer-prompts.md` — the 9-reviewer roster, blind-spots matrix, impact-map producer, Requirement Auditor, Sweep, and the Opus refute-first Judge.
-- `references/commit-and-persist.md` — the commit gate (no attribution) and the `.superhelpers/` persistence rules.
+- `references/commit-and-persist.md` — the commit gate (no attribution) and the `.mavitalk/` persistence rules.
 - `references/verification-rubric.md` — the gates→traceability→tiered-review→aggregate sequence.
 - `references/handoff-template.md` — the full next-session field template.
-- `references/installing-per-project.md` — one-time setup: scaffold `.superhelpers/`, fill `config.yml`, keep CLAUDE.md lean.
+- `references/installing-per-project.md` — one-time setup: scaffold `.mavitalk/`, fill `config.yml`, keep CLAUDE.md lean.
