@@ -26,5 +26,5 @@ and `references/reviewer-prompts.md` for the exact prompts.
    Re-run gates; the last green run must post-date the last edit. In Full, re-review the changed files.
 
 Respect the agent budget: self-limit `throttle.self_limit` (15) dispatches per 5-min window; sequence
-Sweep and the post-fix re-review into the next window (hard backstop `throttle.hard_cap` 20, see the
+Sweep and the post-fix re-review into the next window (hard backstop `throttle.hard_cap` 30, see the
 design spec §15).

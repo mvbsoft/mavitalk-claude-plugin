@@ -22,12 +22,12 @@ ask-interactive / cap-autonomous regimes, and the Workflow/deep-research denies 
    ("allow up to N agents, don't ask me") — the system obeys it, **even in an interactive session**:
    allow up to N, no prompt.
 2. **Interactive, no pre-authorization → ask.** Before any fan-out the owner is shown the plan and
-   must approve or adjust. The owner may approve **more than 20**.
-3. **Autonomous (headless / owner unreachable), no pre-authorization → hard cap 20, no asking.** When
+   must approve or adjust. The owner may approve **more than 30**.
+3. **Autonomous (headless / owner unreachable), no pre-authorization → hard cap 30, no asking.** When
    the owner's "yes" cannot be obtained (orchestrator auto-coding, `claude --print`), the count cap is
    the sole governor. The agent **cannot** raise it itself; only the owner can, in advance, via env.
 
-The 20 cap is therefore the **autonomous-safety floor**, not a general limit. With a human present we
+The 30 cap is therefore the **autonomous-safety floor**, not a general limit. With a human present we
 ask; with explicit pre-authorization we obey it; only unattended runs are capped silently.
 
 ## Architecture (two layers — same split as today)
@@ -44,7 +44,7 @@ part (it knows the plan and can re-plan in chat) because the hook cannot render 
 - Read `permission_mode` from the hook input to pick the regime.
 - **Pre-authorized** (env or session override flag present) → enforce that cap, never ask.
 - **Interactive** → return `permissionDecision: "ask"` with a reason describing the launch, so even if
-  the agent skipped the rule the owner still gets a gate. The owner can approve beyond 20.
+  the agent skipped the rule the owner still gets a gate. The owner can approve beyond 30.
 - **Autonomous** → current behavior: count, `deny` over cap.
 - Per-session override flag: `${HOME}/.mavitalk-agent-override-<sid>` holding `CAP=<n> NOASK=<0|1>`,
   written by the agent when the prompt pre-authorizes; read by the hook. (Agent-mediated, hook-honored.)

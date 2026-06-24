@@ -59,7 +59,7 @@ refactor thus spins up none of the conditional three.
 ## Agent budget (three layers — see the design spec §15)
 The flow self-limits to `throttle.self_limit` (15) dispatches per 5-min window; the base review wave
 itself is bounded by `max_review_agents` (10, reviewers + auditor), real peak ≈ 10–11 (impact-map +
-base wave + auditor); the rest is sequenced into the next window. Hard backstops at CAP 20
+base wave + auditor); the rest is sequenced into the next window. Hard backstops at CAP 30
 (`throttle.hard_cap`: the plugin `agent-throttle.sh` hook + the user's machine hook) catch genuine
 runaways — note the PreToolUse hook bounds **top-level** dispatch only; nested fan-out is bounded by
 the "no nested fan-out" rule, not the hook. Reviewers are read-only `Explore` subagents. Sweep and

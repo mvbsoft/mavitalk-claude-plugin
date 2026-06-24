@@ -16,9 +16,9 @@
 # never crash, and when the mode is unknown it errs to the autonomous floor — never to an open gate.
 set -u
 
-# cap: env override (positive integer) else default 20
-CAP="${MAVITALK_AGENT_CAP:-20}"
-case "$CAP" in (*[!0-9]*|'') CAP=20 ;; esac
+# cap: env override (positive integer) else default 30
+CAP="${MAVITALK_AGENT_CAP:-30}"
+case "$CAP" in (*[!0-9]*|'') CAP=30 ;; esac
 WINDOW=300    # rolling window, seconds
 
 input=$(cat)

@@ -159,7 +159,7 @@ It has four sections:
 rolling-window cap so parallel sub-agent dispatch can never run away. It is the hard backstop behind
 the "agent & research safety" standard.
 
-- **Cap:** 20 launches per session per 5-minute window. The counter is a per-session file under
+- **Cap:** 30 launches per session per 5-minute window. The counter is a per-session file under
   `$HOME`, updated atomically to survive concurrent dispatches.
 - **Within the cap:** exits silently — ordinary parallel work is never interrupted.
 - **Over the cap — interactive session** (`default` / `plan` / `acceptEdits` modes): returns
@@ -175,7 +175,7 @@ Environment overrides (set at launch):
 
 | Variable | Effect |
 |---|---|
-| `MAVITALK_AGENT_CAP=<n>` | Raise the per-window cap for the whole run (the only way to let an autonomous run exceed 20) |
+| `MAVITALK_AGENT_CAP=<n>` | Raise the per-window cap for the whole run (the only way to let an autonomous run exceed 30) |
 | `MAVITALK_HEADLESS=1` | Force autonomous classification regardless of `permission_mode` |
 | `MAVITALK_AGENT_NOASK=1` | Lift the gate entirely for the run (pre-authorization) |
 
@@ -312,7 +312,7 @@ into a project the first time it closes a session there:
 - `config.yml` — the project's workflow configuration: artifact language, conversation language
   (auto-detect), commit attribution (`none`), gate commands, review settings (default tier, reviewer
   model `sonnet`, retrieval `haiku`, judge `opus`, per-tier reviewer rosters, conditional reviewers,
-  throttle cap 20 / self-limit 15), security tools, and paths.
+  throttle cap 30 / self-limit 15), security tools, and paths.
 - `next-session.md` — the handoff template (status, branch, `last_verified_sha`, current state, done,
   not done, known issues, architecture snapshot, dead ends, immediate next action).
 - `memory/project-memory.md` — the persistent memory template (identity, stack, architecture,

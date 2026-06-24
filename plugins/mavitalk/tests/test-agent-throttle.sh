@@ -10,35 +10,35 @@ sid="test-sess-1"
 # No permission_mode -> unknown -> autonomous (fail-safe), so over-cap is a hard deny.
 payload='{"session_id":"'"$sid"'"}'
 
-# Launches 1..20 are allowed (no output).
+# Launches 1..30 are allowed (no output).
 i=1; denied_before_cap=""
-while [ "$i" -le 20 ]; do
+while [ "$i" -le 30 ]; do
   out="$(printf '%s' "$payload" | sh "$SCRIPT")"
   [ -n "$out" ] && denied_before_cap="launch $i denied: $out"
   i=$((i + 1))
 done
-assert_empty "allows launches up to CAP (20)" "$denied_before_cap"
+assert_empty "allows launches up to CAP (30)" "$denied_before_cap"
 
-# The 21st launch is denied (autonomous), with the full hook-output shape.
-out21="$(printf '%s' "$payload" | sh "$SCRIPT")"
-assert_eq "denies the 21st autonomous launch in the window" "deny" \
-  "$(printf '%s' "$out21" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
+# The 31st launch is denied (autonomous), with the full hook-output shape.
+out31="$(printf '%s' "$payload" | sh "$SCRIPT")"
+assert_eq "denies the 31st autonomous launch in the window" "deny" \
+  "$(printf '%s' "$out31" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
 assert_eq "deny names the PreToolUse event" "PreToolUse" \
-  "$(printf '%s' "$out21" | jq -r '.hookSpecificOutput.hookEventName // empty')"
+  "$(printf '%s' "$out31" | jq -r '.hookSpecificOutput.hookEventName // empty')"
 assert_eq "deny reason names the cap" "true" \
-  "$(printf '%s' "$out21" | jq -r '(.hookSpecificOutput.permissionDecisionReason // "") | contains("cap")')"
+  "$(printf '%s' "$out31" | jq -r '(.hookSpecificOutput.permissionDecisionReason // "") | contains("cap")')"
 
 # A different session is independent.
 assert_empty "throttle is per-session" "$(printf '%s' '{"session_id":"other"}' | sh "$SCRIPT")"
 
 # WINDOW expiry resets the counter: pre-seed an expired window already at CAP, expect ALLOW.
-printf '%s %s\n' "$(( $(date +%s) - 400 ))" "20" > "$HOME/.mavitalk-agent-throttle-reset"
+printf '%s %s\n' "$(( $(date +%s) - 400 ))" "30" > "$HOME/.mavitalk-agent-throttle-reset"
 assert_empty "allows the first launch in a fresh window after expiry" \
   "$(printf '%s' '{"session_id":"reset"}' | sh "$SCRIPT")"
 
 # Missing session_id falls back to a shared 'nosession' bucket and still caps.
 j=1; nos_denied=""
-while [ "$j" -le 20 ]; do
+while [ "$j" -le 30 ]; do
   o="$(printf '%s' '{}' | sh "$SCRIPT")"
   [ -n "$o" ] && nos_denied="at $j"
   j=$((j + 1))
