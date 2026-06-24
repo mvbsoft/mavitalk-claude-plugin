@@ -24,6 +24,7 @@ serves every repo and every machine identically.
 ## Table of contents
 
 - [What it is and why](#what-it-is-and-why)
+- [What it does for you — a concrete walkthrough](#what-it-does-for-you--a-concrete-walkthrough)
 - [How it works — the three config layers](#how-it-works--the-three-config-layers)
 - [Install](#install)
 - [Components](#components)
@@ -55,6 +56,67 @@ It is a **behavior layer**, not a project's own conventions. Project-specific ru
 style, documentation structure) live in each repo's `AGENTS.md` / `docs/`; personal preferences (for
 example the chat language) live in the owner's private `~/.claude/CLAUDE.md`. This plugin holds only
 what is the same for every project.
+
+---
+
+## What it does for you — a concrete walkthrough
+
+Here is what actually changes in a normal day of work once the plugin is enabled. Nothing happens
+silently behind your back — you see each step, and you still approve anything that writes or publishes.
+
+**1. You open the project.** At session start the plugin injects the shared standards into the agent's
+context (the `SessionStart` hook). From then on the agent follows the same rules in every repo: it
+researches before designing new functionality, keeps fixes surgical (verify existing behavior after
+each edit), treats "done" as *tests **and** docs updated in the same change*, and never signs commits
+as AI. You type nothing — the rules are simply *on*.
+
+**2. You ask for something non-trivial** — say *"add a webhook endpoint"*. Before writing code the
+agent triggers the `architecture-review` skill: it checks where the code belongs, the dependency
+direction, and known anti-patterns, then presents a short two-part plan (plain language + technical,
+with rejected alternatives) and **waits for your review**. You are never surprised by a big change that
+already happened.
+
+**3. The agent wants to work in parallel.** A handful of read-only search agents runs without
+interrupting you — that's normal and encouraged. But if it tries to launch more than **30** in a
+5-minute window, the governor steps in. In an interactive session you get a prompt like:
+
+> *mavitalk agent governor: launch #31 within 300s exceeds the cap of 30. Tell the owner what you are
+> launching and why — they can approve more, or sequence the work into the next window.*
+
+You decide: approve more, or let it sequence the rest into the next window. In an unattended run (no
+one to ask) it is simply denied — the budget can't run away while you are not looking.
+
+**4. The agent reaches for a heavy engine.** Workflow and the deep-research skill can each spin up
+hundreds of agents at once. When you are present, the governor **asks first** and says which engine and
+roughly how many agents; when no one is present, it is **denied**. So these powerful tools are on
+demand for you but can never fire unsupervised.
+
+**5. You finish for the day** — you type `/mavitalk:end-session`. The agent does **not** just commit.
+It runs your project's real gates and pastes the actual numbers; dispatches an independent multi-agent
+review sized to the change (Light / Medium / Full); fixes what the review finds (test-first) and
+re-runs the gates; writes the handoff files; then shows you the staged diff and **waits for your "ok"**
+before committing — with a clean, human-looking message and no AI attribution. Nothing is pushed unless
+you ask. A close looks roughly like:
+
+```text
+Gates:  ruff ✓ (0)   pyright ✓ (0)   pytest ✓ (128 passed)
+Review (Medium): 1 Critical fixed (off-by-one in retry window), 2 Important fixed, 3 Minor noted
+Traceability: 4/4 requirements DONE (each cites a passing test)
+Staged 7 files — review the diff above and reply "ok" to commit.
+```
+
+**6. Next time you sit down** — you type `/mavitalk:start-session`. It reads the handoff from disk,
+checks the recorded commit SHA against git (so it never trusts a stale "done" list), briefs you in your
+language, and resumes the exact next action. No re-explaining where you left off.
+
+The two `/mavitalk:` commands are the only things **you** drive directly; everything else (standards,
+skill triggers, the governor) happens around your normal work. The agent still does the reasoning — the
+plugin makes it consistent, careful at the end, and frictionless at the start.
+
+> **Per-project quality gates are separate.** The fast "auto-clean each file the moment it's edited"
+> checks (ruff / eslint / php-cs-fixer on save) live in **each project's own `.claude/`**, not in this
+> plugin, because they are stack-specific. This plugin ships the shared *behavior*; each repo wires its
+> own per-edit gate. (The end-session review above is this plugin; the on-save auto-fix is the repo's.)
 
 ---
 
