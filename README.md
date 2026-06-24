@@ -123,7 +123,7 @@ by the end-session command rather than wired to an event:
 | Event | Matcher | Script | What it does |
 |---|---|---|---|
 | `SessionStart` | `startup\|resume` | `inject-standards.sh` | Injects the cross-project standards (`mavitalk-standards.md`) as session context |
-| `PreToolUse` | `Agent\|Task\|Workflow` | `agent-throttle.sh` | The fan-out governor — caps parallel sub-agent launches |
+| `PreToolUse` | `Agent\|Task\|Workflow\|Skill` | `agent-throttle.sh` | The fan-out governor — caps parallel sub-agent launches and gates the workflow/deep-research engines |
 | — (helper) | — | `session-signals.sh` | Emits deterministic working-tree facts for the finish assessment |
 
 Each script is **fail-safe**: if a required file or tool is missing it exits cleanly (`exit 0`)
@@ -147,8 +147,9 @@ It has four sections:
   for synthesis/review/ordinary coding (default), Opus only for genuinely hard
   research/architecture/validation. Pick the cheapest tier that fits.
 - **Agent & research safety** — research/review sub-agents must be read-only `Explore`; no nested
-  fan-out; workflows and `deep-research` are disabled; fan-out is governed by the throttle hook;
-  every dispatched agent gets a bounded task with a stop condition.
+  fan-out; workflows and `deep-research` are gated by the throttle hook (allowed interactively, denied
+  in an autonomous run); fan-out is governed by the same hook; every dispatched agent gets a bounded
+  task with a stop condition.
 - **Authorship hygiene** — everything written into a repo reads as ordinary human engineering work:
   no AI/tool authorship fingerprints, and no ticket/plan/step codes in code or docs (process
   metadata belongs in the PR or issue tracker).

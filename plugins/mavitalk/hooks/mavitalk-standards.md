@@ -66,7 +66,8 @@ synthesis → Sonnet, final roll-up → Opus; a workflow step takes the model it
   write-capable / agent-spawning type.
 - **No nested fan-out** — a sub-agent you spawn must not spawn further sub-agents (one level deep).
   Flat parallelism from the main session, up to the ceiling, is fine and good for batch work.
-- **Workflows and the `deep-research` skill are disabled** (permissions deny). Do not route around it.
+- **Workflows and the `deep-research` skill are gated, not hard-denied** — the `agent-throttle` gate
+  allows them in an interactive session and denies them in an autonomous one. Don't route around the gate.
 - **Fan-out is governed** by the `agent-throttle` hook (cap 30 / 5 min, per session). Within the cap
   it runs silently; over it, an **interactive** session **asks the owner** (who can approve more) and an
   **autonomous** run is **denied** — only `MAVITALK_AGENT_CAP` (raised at launch) lets an autonomous

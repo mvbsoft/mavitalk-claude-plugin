@@ -11,11 +11,11 @@ The plugin already injects the cross-project "how we work" standards at session 
 working rules, the sub-agent model policy, **agent & research safety**, and authorship hygiene — so
 projects no longer duplicate them (no plugin -> none apply; personal preferences such as response
 language stay in `~/.claude/CLAUDE.md`). This governor is the *enforcement and evolution* of the
-"Agent & research safety" part of those standards: today that section states a flat ceiling and the
-disabled Workflow/deep-research; when the governor ships, that section is rewritten to describe the
-ask-interactive / cap-autonomous regimes. The Workflow/deep-research denies stay in place until the
-subscription-quota budget lands; only then do they convert to the hook-gate (ask interactive / deny
-autonomous), so there is no unguarded window.
+"Agent & research safety" part of those standards: it replaces the flat ceiling and the static
+Workflow/deep-research denies with the ask-interactive / deny-autonomous gate. The static denies are
+removed for interactive contexts (the gate replaces them); the unattended auto-coder is blocked at the
+engine level instead (it runs under the engine's own `--settings`, not this hook); the subscription-quota
+budget is an additional cost floor added separately.
 
 ## Policy (three layers, highest precedence first)
 
