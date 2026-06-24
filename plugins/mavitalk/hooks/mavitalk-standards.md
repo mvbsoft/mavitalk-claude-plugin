@@ -61,19 +61,26 @@ Three mechanisms keep important work off weak models:
 Pick the cheapest tier that meets the task. (deep-research, if ever enabled: sub-searches → Haiku,
 synthesis → Sonnet, final roll-up → Opus; a workflow step takes the model its role needs.)
 
-## Agent & research safety (prevent runaway sub-agents)
-- Research / review sub-agents must be read-only **`Explore`** — never `general-purpose` or any
-  write-capable / agent-spawning type.
-- **No nested fan-out** — a sub-agent you spawn must not spawn further sub-agents (one level deep).
-  Flat parallelism from the main session, up to the ceiling, is fine and good for batch work.
-- **Workflows and the `deep-research` skill are gated, not hard-denied** — the `agent-throttle` gate
-  allows them in an interactive session and denies them in an autonomous one. Don't route around the gate.
-- **Fan-out is governed** by the `agent-throttle` hook (cap 30 / 5 min, per session). Within the cap
-  it runs silently; over it, an **interactive** session **asks the owner** (who can approve more) and an
-  **autonomous** run is **denied** — only `MAVITALK_AGENT_CAP` (raised at launch) lets an autonomous
-  run exceed it. When a launch is gated, tell the owner what you were launching and why.
+## Agent & research safety (a token-leak safeguard, not a quality policy)
+The `agent-throttle` hook is a per-session backstop against runaway fan-out / token blow-ups; it does
+not police normal work. ONE cap (default 20 launches / 5-min rolling window, per session) covers every
+dispatch (Agent / Task / Workflow). A Skill — including `deep-research` — is allowed and never counted,
+so the agents it spawns are what count.
+- **Within the cap → silent.** Ordinary single/few-agent work is never interrupted — don't nag.
+- **Over the cap, owner present (interactive) → ask.** Say what you are launching and why; the owner
+  approves more, fewer, or none.
+- **Over the cap, owner absent (autonomous) → deny.** The cap is the iron floor; only
+  `MAVITALK_AGENT_CAP` (raised by the owner at launch) lets an autonomous run exceed it.
+- **Engines are bounded by the same cap, not specially denied.** When the owner is absent, agents may
+  use whatever they need — workflows, deep-research — but the cap is an absolute backstop; when present,
+  within-cap engines run silently and anything beyond it asks first.
+- **Depth stays ONE level by default, by construction.** Research / review sub-agents must be read-only
+  **`Explore`** — never `general-purpose` or any write-capable / agent-spawning type — so a leaf has no
+  Agent tool and cannot spawn. A multi-level fan-out (a sub-agent spawning its own sub-agents) is OFF by
+  default and needs **explicit owner approval in an interactive session**: state what you want to do and
+  wait for the yes. Never automatic.
 - Give every dispatched agent a concrete, bounded task with a stop condition. When the owner is away
-  or says "continue", take a bounded step or wait — never start a mass research sweep.
+  or says "continue", take a bounded step or wait — never start a mass sweep beyond the cap.
 
 ## Authorship hygiene
 Everything written into the repo must read as ordinary human engineering work. No AI/tool authorship

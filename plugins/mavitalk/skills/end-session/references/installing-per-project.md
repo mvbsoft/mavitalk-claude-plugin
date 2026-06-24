@@ -33,7 +33,7 @@ Keep only facts: gate commands (or in `config.yml`), language convention, and a 
 
 ## 4. Agent-throttle backstop (portable)
 Enabling this plugin already activates a hard agent-dispatch backstop: the plugin ships
-`hooks/agent-throttle.sh` (PreToolUse, CAP from `config.yml` `throttle.hard_cap`, default 30), so any
+`hooks/agent-throttle.sh` (PreToolUse, CAP from `config.yml` `throttle.hard_cap`, default 20), so any
 project that enables `mavitalk@<marketplace>` gets it on any machine — it travels with the plugin,
 not with `~/.claude/`. Note: hooks DO fire inside sub-agents and the platform caps nesting depth at 5,
 but whether the counter sees a whole nested tree under one `session_id` is not yet verified — so review/
@@ -48,4 +48,4 @@ copy of `agent-throttle.sh`:
       "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-throttle.sh\"" } ] } ] }
 
 Two registered hooks (machine + project) both fire and both deny at their own CAP — harmless when both
-are 30.
+are 20.

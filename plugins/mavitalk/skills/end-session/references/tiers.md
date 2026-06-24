@@ -69,7 +69,7 @@ refactor thus spins up none of the conditional reviewers.
   Medium and Full (Light uses lightweight main-thread dedup).
 
 ## Agent budget
-The hard backstop is the plugin's `agent-throttle.sh` hook: CAP 30 (`throttle.hard_cap`) launches per
+The hard backstop is the plugin's `agent-throttle.sh` hook: CAP 20 (`throttle.hard_cap`) launches per
 5-min window, per session. Stay well under it — a Full wave peaks at ≈6–9 agents (impact-map + base
 reviewers + activated conditionals + auditor); the post-fix re-review is sequenced into the next
 window. Reviewers and the impact-map producer are read-only `Explore` subagents: they have no Agent

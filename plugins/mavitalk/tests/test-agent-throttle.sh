@@ -10,35 +10,35 @@ sid="test-sess-1"
 # No permission_mode -> unknown -> autonomous (fail-safe), so over-cap is a hard deny.
 payload='{"session_id":"'"$sid"'"}'
 
-# Launches 1..30 are allowed (no output).
+# Launches 1..20 are allowed (no output).
 i=1; denied_before_cap=""
-while [ "$i" -le 30 ]; do
+while [ "$i" -le 20 ]; do
   out="$(printf '%s' "$payload" | sh "$SCRIPT")"
   [ -n "$out" ] && denied_before_cap="launch $i denied: $out"
   i=$((i + 1))
 done
-assert_empty "allows launches up to CAP (30)" "$denied_before_cap"
+assert_empty "allows launches up to CAP (20)" "$denied_before_cap"
 
-# The 31st launch is denied (autonomous), with the full hook-output shape.
-out31="$(printf '%s' "$payload" | sh "$SCRIPT")"
-assert_eq "denies the 31st autonomous launch in the window" "deny" \
-  "$(printf '%s' "$out31" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
+# The 21st launch is denied (autonomous), with the full hook-output shape.
+out21="$(printf '%s' "$payload" | sh "$SCRIPT")"
+assert_eq "denies the 21st autonomous launch in the window" "deny" \
+  "$(printf '%s' "$out21" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
 assert_eq "deny names the PreToolUse event" "PreToolUse" \
-  "$(printf '%s' "$out31" | jq -r '.hookSpecificOutput.hookEventName // empty')"
+  "$(printf '%s' "$out21" | jq -r '.hookSpecificOutput.hookEventName // empty')"
 assert_eq "deny reason names the cap" "true" \
-  "$(printf '%s' "$out31" | jq -r '(.hookSpecificOutput.permissionDecisionReason // "") | contains("cap")')"
+  "$(printf '%s' "$out21" | jq -r '(.hookSpecificOutput.permissionDecisionReason // "") | contains("cap")')"
 
 # A different session is independent.
 assert_empty "throttle is per-session" "$(printf '%s' '{"session_id":"other"}' | sh "$SCRIPT")"
 
 # WINDOW expiry resets the counter: pre-seed an expired window already at CAP, expect ALLOW.
-printf '%s %s\n' "$(( $(date +%s) - 400 ))" "30" > "$HOME/.mavitalk-agent-throttle-reset"
+printf '%s %s\n' "$(( $(date +%s) - 400 ))" "20" > "$HOME/.mavitalk-agent-throttle-reset"
 assert_empty "allows the first launch in a fresh window after expiry" \
   "$(printf '%s' '{"session_id":"reset"}' | sh "$SCRIPT")"
 
 # Missing session_id falls back to a shared 'nosession' bucket and still caps.
 j=1; nos_denied=""
-while [ "$j" -le 30 ]; do
+while [ "$j" -le 20 ]; do
   o="$(printf '%s' '{}' | sh "$SCRIPT")"
   [ -n "$o" ] && nos_denied="at $j"
   j=$((j + 1))
@@ -106,20 +106,30 @@ assert_empty "MAVITALK_AGENT_NOASK lifts the gate (allow over cap, even interact
   "$(decide na default MAVITALK_AGENT_NOASK=1)"
 rm -rf "$MH"
 
-# --- Engine gate: the Workflow tool and the deep-research Skill bypass the count and gate on their own ---
-# (dec() is defined above — reuse it.)
+# --- Engines are bounded by the SAME cap, not a separate gate ---
+# A Workflow launch counts like any dispatch: within the cap it runs silently (the owner is not
+# nagged) and it increments the shared counter; over the cap it follows the universal rule (deny
+# autonomous / ask interactive). deep-research is a Skill — allowed and never counted; the agents it
+# spawns are Agent/Task launches that the counter catches. (dec() is defined above — reuse it.)
 EG="$(mktemp -d)"
-wf_int="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf1"}' | env HOME="$EG" sh "$SCRIPT")"
-assert_eq "Workflow interactive is gated with ask" "ask" "$(dec "$wf_int")"
-wf_auto="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"bypassPermissions","session_id":"wf2"}' | env HOME="$EG" sh "$SCRIPT")"
-assert_eq "Workflow autonomous is gated with deny" "deny" "$(dec "$wf_auto")"
-wf_noask="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf3"}' | env HOME="$EG" MAVITALK_AGENT_NOASK=1 sh "$SCRIPT")"
-assert_empty "pre-authorized Workflow bypasses the engine gate" "$wf_noask"
 
-dr_int="$(printf '%s' '{"tool_name":"Skill","permission_mode":"default","tool_input":{"command":"deep-research"},"session_id":"dr1"}' | env HOME="$EG" sh "$SCRIPT")"
-assert_eq "deep-research Skill interactive is gated with ask" "ask" "$(dec "$dr_int")"
-dr_auto="$(printf '%s' '{"tool_name":"Skill","permission_mode":"bypassPermissions","tool_input":{"name":"deep-research"},"session_id":"dr2"}' | env HOME="$EG" sh "$SCRIPT")"
-assert_eq "deep-research Skill autonomous is gated with deny" "deny" "$(dec "$dr_auto")"
+# Workflow within the cap (interactive) is allowed silently — no engine ask — and IS counted.
+wf_ok="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf1"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_empty "Workflow within the cap runs silently (no engine gate)" "$wf_ok"
+[ -f "$EG/.mavitalk-agent-throttle-wf1" ] && wff=yes || wff=no
+assert_eq "Workflow IS counted toward the cap" "yes" "$wff"
+
+# Workflow over the cap follows the universal rule (cap=1: launch #1 allowed, #2 is the decision).
+wf_auto="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"bypassPermissions","session_id":"wf2"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT" >/dev/null; printf '%s' '{"tool_name":"Workflow","permission_mode":"bypassPermissions","session_id":"wf2"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT")"
+assert_eq "Workflow over the cap denies autonomously" "deny" "$(dec "$wf_auto")"
+wf_int="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf3"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT" >/dev/null; printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf3"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT")"
+assert_eq "Workflow over the cap asks interactively" "ask" "$(dec "$wf_int")"
+
+# deep-research is a Skill: allowed even autonomously and NOT counted (its agents are what count).
+dr="$(printf '%s' '{"tool_name":"Skill","permission_mode":"bypassPermissions","tool_input":{"command":"deep-research"},"session_id":"dr1"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_empty "deep-research Skill is allowed (even autonomous), not gated" "$dr"
+[ -f "$EG/.mavitalk-agent-throttle-dr1" ] && drf=yes || drf=no
+assert_eq "deep-research Skill is not counted toward the cap" "no" "$drf"
 
 # An ordinary Skill is allowed and must NOT consume the fan-out cap (no counter file is created).
 ord="$(printf '%s' '{"tool_name":"Skill","permission_mode":"default","tool_input":{"command":"end-session"},"session_id":"sk"}' | env HOME="$EG" sh "$SCRIPT")"

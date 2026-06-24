@@ -34,7 +34,7 @@ traceability (isolated auditor) → tiered review of the activated reviewers (`r
 soft-drop, escalate contested Criticals/conflicts to an Opus adjudicator, genuine conflicts to you) →
 fix Critical/Important via TDD → re-run gates (last green post-dates last edit; Full re-reviews changed
 files). The Judge runs on Opus at Medium/Full; Light uses lightweight main-thread dedup. Reviewers are
-read-only `Explore` subagents (flat by construction); the plugin's agent-throttle hook (CAP 30) is the
+read-only `Explore` subagents (flat by construction); the plugin's agent-throttle hook (CAP 20) is the
 hard backstop.
 
 ## Phase 2 — HAND OFF

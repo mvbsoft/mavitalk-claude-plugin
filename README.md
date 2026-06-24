@@ -77,19 +77,21 @@ with rejected alternatives) and **waits for your review**. You are never surpris
 already happened.
 
 **3. The agent wants to work in parallel.** A handful of read-only search agents runs without
-interrupting you — that's normal and encouraged. But if it tries to launch more than **30** in a
-5-minute window, the governor steps in. In an interactive session you get a prompt like:
+interrupting you — that's normal and encouraged. But if it tries to launch more than **20** in a
+5-minute window, the safeguard steps in. In an interactive session you get a prompt like:
 
-> *mavitalk agent governor: launch #31 within 300s exceeds the cap of 30. Tell the owner what you are
-> launching and why — they can approve more, or sequence the work into the next window.*
+> *mavitalk safeguard: launch #21 within 300s exceeds the cap of 20. Tell the owner what you are
+> launching and why — they can approve more, fewer, or none.*
 
-You decide: approve more, or let it sequence the rest into the next window. In an unattended run (no
-one to ask) it is simply denied — the budget can't run away while you are not looking.
+You decide: approve more, fewer, or none. In an unattended run (no one to ask) it is simply denied —
+the budget can't run away while you are not looking.
 
-**4. The agent reaches for a heavy engine.** Workflow and the deep-research skill can each spin up
-hundreds of agents at once. When you are present, the governor **asks first** and says which engine and
-roughly how many agents; when no one is present, it is **denied**. So these powerful tools are on
-demand for you but can never fire unsupervised.
+**4. The agent reaches for a heavy engine.** Workflow and the deep-research skill can each fan out
+many agents. They are **not blocked outright** — they run under the *same* safeguard: every agent they
+spawn counts toward the 20-per-window cap, so the cap is their hard bound too. Within it they run
+without nagging you (even unattended); the moment the fan-out would exceed the cap, a present owner is
+asked and an unattended run is denied. So heavy engines are available even when you are away, yet can
+never run away.
 
 **5. You finish for the day** — you type `/mavitalk:end-session`. The agent does **not** just commit.
 It runs your project's real gates and pastes the actual numbers; dispatches an independent multi-agent
@@ -208,33 +210,38 @@ It has four sections:
 - **Sub-agent model policy** — match the model to the task: Haiku for pure search/retrieval, Sonnet
   for synthesis/review/ordinary coding (default), Opus only for genuinely hard
   research/architecture/validation. Pick the cheapest tier that fits.
-- **Agent & research safety** — research/review sub-agents must be read-only `Explore`; no nested
-  fan-out; workflows and `deep-research` are gated by the throttle hook (allowed interactively, denied
-  in an autonomous run); fan-out is governed by the same hook; every dispatched agent gets a bounded
-  task with a stop condition.
+- **Agent & research safety** — a per-session token-leak safeguard: one cap (default 20 / 5 min)
+  bounds every dispatch (Agent/Task/Workflow); a Skill incl. `deep-research` is allowed and uncounted,
+  so its spawned agents are what count. Within the cap → silent; over it → ask (interactive) / deny
+  (autonomous). Engines are bounded by the same cap, not denied. Depth stays one level by construction
+  (read-only `Explore` leaves); a multi-level fan-out needs explicit owner approval. Every dispatched
+  agent gets a bounded task with a stop condition.
 - **Authorship hygiene** — everything written into a repo reads as ordinary human engineering work:
   no AI/tool authorship fingerprints, and no ticket/plan/step codes in code or docs (process
   metadata belongs in the PR or issue tracker).
 
-### The fan-out governor
+### The fan-out safeguard
 
 `agent-throttle.sh` runs on `PreToolUse` for `Agent|Task|Workflow|Skill` and enforces a per-session
-rolling-window cap so parallel sub-agent dispatch can never run away. It is the hard backstop behind
-the "agent & research safety" standard.
+rolling-window cap so parallel sub-agent dispatch can never run away. It is a **safeguard against
+token blow-ups**, not a quality policy — ordinary work runs untouched.
 
-- **Cap:** 30 launches per session per 5-minute window. The counter is a per-session file under
+- **Cap:** 20 launches per session per 5-minute window. The counter is a per-session file under
   `$HOME`, updated atomically to survive concurrent dispatches.
 - **Within the cap:** exits silently — ordinary parallel work is never interrupted.
 - **Over the cap — interactive session** (`default` / `plan` / `acceptEdits` modes): returns
-  `ask` — the agent must tell you what it is launching and why so you can approve more or sequence
-  the work.
+  `ask` — the agent must tell you what it is launching and why so you can approve more, fewer, or none.
 - **Over the cap — autonomous session** (`bypassPermissions`, headless, or any unknown mode):
-  returns `deny` — the agent must sequence the work, use inline research tools, or have you raise the
-  cap at launch.
-- **Mass-fan-out engines** (the Workflow tool, or a `Skill` invoking deep-research): gated regardless
-  of the cap — `ask` interactive, `deny` autonomous — because one launch can spin up hundreds of
-  agents. An ordinary skill is allowed and never counted. (Dormant while those tools are denied in
-  permissions; ready for when that gate is lifted.)
+  returns `deny` — the cap is the iron floor; the agent must sequence the work, use inline research
+  tools, or have you raise the cap at launch.
+- **Engines are bounded by the same cap, not separately denied.** A Skill (including deep-research) is
+  allowed and never counted; the agents it spawns are what count. The Workflow tool counts as a launch
+  and its fanned-out agents count too. So when you are away, agents may use workflows and deep-research
+  *within* the cap — the cap is the absolute backstop, and a fan-out that would exceed it is denied
+  unattended (or asked when you are present).
+- **Depth stays one level.** This hook counts launches, not depth. One level is kept by construction —
+  review/research leaves are read-only `Explore` subagents with no Agent tool, so they cannot spawn. A
+  multi-level fan-out needs explicit owner approval in an interactive session; it is never automatic.
 - **Fail-safe:** any error (unset `HOME`, missing tool, corrupted counter, unknown mode) never
   crashes and never silently opens the gate — an unknown mode errs to the autonomous floor.
 
@@ -242,14 +249,15 @@ Environment overrides (set at launch):
 
 | Variable | Effect |
 |---|---|
-| `MAVITALK_AGENT_CAP=<n>` | Raise the per-window cap for the whole run (the only way to let an autonomous run exceed 30) |
+| `MAVITALK_AGENT_CAP=<n>` | Raise the per-window cap for the whole run (the only way to let an autonomous run exceed 20) |
 | `MAVITALK_HEADLESS=1` | Force autonomous classification regardless of `permission_mode` |
 | `MAVITALK_AGENT_NOASK=1` | Lift the gate entirely for the run (pre-authorization) |
 
 Hooks do fire inside sub-agents and the platform caps nesting depth at 5, but whether the counter
-sees a whole nested tree under one session id is not yet verified — so review/research fan-out stays
-flat by construction (read-only `Explore` subagents cannot spawn) until a depth-3 test proves
-tree-wide accounting. Full design: [`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md).
+sees a whole nested tree under one session id is not yet verified — so bounding an engine's fan-out by
+the cap (and keeping research/review flat) relies on that tree-wide accounting. Until a depth-3 test
+proves it live, the read-only `Explore` leaves (which cannot spawn) are what keep fan-out one level
+deep. Full design: [`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md).
 
 ### The session pipeline
 
@@ -380,7 +388,7 @@ into a project the first time it closes a session there:
 - `config.yml` — the project's workflow configuration: artifact language, conversation language
   (auto-detect), commit attribution (`none`), gate commands, review settings (default tier, reviewer
   model `sonnet`, retrieval `haiku`, judge `opus`, per-tier reviewer rosters, conditional reviewers,
-  throttle cap 30), security tools, and paths.
+  throttle cap 20), security tools, and paths.
 - `next-session.md` — the handoff template (status, branch, `last_verified_sha`, current state, done,
   not done, known issues, architecture snapshot, dead ends, immediate next action).
 - `memory/project-memory.md` — the persistent memory template (identity, stack, architecture,

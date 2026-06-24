@@ -18,8 +18,8 @@ assert_eq "self_limit removed" "yes" \
   "$(grep -q 'self_limit' "$CFG" && echo no || echo yes)"
 
 # The current keys must be present.
-assert_eq "hard_cap is 30" "yes" \
-  "$(grep -Eq '^[[:space:]]*hard_cap:[[:space:]]*30\b' "$CFG" && echo yes || echo no)"
+assert_eq "hard_cap is 20" "yes" \
+  "$(grep -Eq '^[[:space:]]*hard_cap:[[:space:]]*20\b' "$CFG" && echo yes || echo no)"
 assert_eq "headless_tier is set" "yes" \
   "$(grep -Eq '^[[:space:]]*headless_tier:[[:space:]]*\w' "$CFG" && echo yes || echo no)"
 

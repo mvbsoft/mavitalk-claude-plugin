@@ -38,7 +38,7 @@ review:
     grounded_verifier:           # verify external API/lib usage against current authoritative docs
       touches: [external-surface]
 throttle:
-  hard_cap: 30                   # plugin-shipped agent-throttle hook (per 5-min window, per session)
+  hard_cap: 20                   # plugin-shipped agent-throttle hook (per 5-min window, per session)
 security:
   deterministic: []              # e.g. [gitleaks, semgrep, "npm audit"] — Full, run first
 project:

@@ -30,5 +30,5 @@ and `references/reviewer-prompts.md` for the exact prompts.
    TDD. Re-run gates; the last green run must post-date the last edit. In Full, re-review the changed files.
 
 Respect the agent budget: the plugin's `agent-throttle.sh` hook caps dispatch at `throttle.hard_cap`
-(30) per 5-min window. A Full wave peaks at ≈6–9 agents; sequence the post-fix re-review into the next
+(20) per 5-min window. A Full wave peaks at ≈6–9 agents; sequence the post-fix re-review into the next
 window. Reviewers are read-only `Explore` subagents (no Agent tool → flat by construction).
