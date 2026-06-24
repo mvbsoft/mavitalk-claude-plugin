@@ -1,2 +1,5 @@
-# Shell scripts must stay LF or they won't execute on Linux/macOS.
+# Normalize all text to LF in the repo and the working tree. Shell scripts in particular
+# must stay LF or they won't execute on Linux/macOS, and the test suite greps line-anchored
+# patterns that a stray CRLF would break.
+* text=auto eol=lf
 *.sh text eol=lf
