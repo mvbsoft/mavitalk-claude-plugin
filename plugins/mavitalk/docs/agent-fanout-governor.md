@@ -11,19 +11,20 @@ The plugin already injects the cross-project "how we work" standards at session 
 working rules, the sub-agent model policy, **agent & research safety**, and authorship hygiene — so
 projects no longer duplicate them (no plugin -> none apply; personal preferences such as response
 language stay in `~/.claude/CLAUDE.md`). This governor is the *enforcement* of the
-"Agent & research safety" part of those standards. It is a single per-session count cap (default 20 /
-5-min window): within the cap allow silently, over it ask an interactive owner or deny an autonomous
-run. There is **no separate engine gate** — a Skill (including deep-research) is allowed and uncounted,
-while the Workflow tool and the agents an engine spawns count toward the same cap, so the cap bounds
-engines too.
+"Agent & research safety" part of those standards. It does two things: (1) **meter** direct dispatch
+(Agent / Task) with a per-session count cap (default 20 / 5-min window) — within → silent, over → ask
+interactive / deny autonomous; and (2) **gate** the mass-fan-out engines (the Workflow tool, the
+deep-research Skill) on their own — ask interactive / deny autonomous — because an engine's internal
+agents bypass the hook and the cap cannot meter them. An ordinary Skill is allowed and never counted.
 
-> **Superseded design note.** An earlier revision gated the engines on their own (Workflow / a
-> deep-research Skill → interactive `ask`, autonomous `deny`, `NOASK` lifts), regardless of the count.
-> That was **removed** in favour of the simpler "engines are bounded by the same count cap" model the
-> owner asked for: when the owner is absent, an agent may use an engine *within* the cap (the cap is the
-> absolute backstop); when present, within-cap engines run silently and anything beyond the cap asks.
-> Bounding an engine this way relies on the engine's internal sub-agent spawns being counted — see the
-> tree-wide-accounting unknown in the Invariants below.
+> **Design history (why engines are gated, not counted).** An interim revision (1.3.0) removed the
+> engine gate and tried to bound engines by the same count cap, on the assumption that an engine's
+> internal sub-agent spawns would fire this hook under the session's id. A **live test (2026-06-24)
+> disproved it**: a 3-agent Workflow incremented the counter by only 1 (the launch itself) — the engine
+> spawns its agents through its own runtime, NOT the Agent tool, so they never reach this hook and
+> cannot be counted. The engine gate was therefore **restored** (1.3.1). The same test confirmed the
+> opposite for Agent-tool nesting: a nested sub-agent DOES share the parent's session_id, so the cap
+> counts the whole tree — which is why direct dispatch is metered, not gated.
 
 ## Policy (three layers, highest precedence first)
 
@@ -56,14 +57,13 @@ part (it knows the plan and can re-plan in chat) because the hook cannot render 
 - Read `permission_mode` from the hook input to pick the regime.
 - **Pre-authorized** (env or session override flag present) → enforce that cap, never ask.
 - **Interactive** → return `permissionDecision: "ask"` with a reason describing the launch, so even if
-  the agent skipped the rule the owner still gets a gate. The owner can approve beyond 30.
+  the agent skipped the rule the owner still gets a gate. The owner can approve beyond 20.
 - **Autonomous** → count, `deny` over cap.
-- **Engines bounded by the same cap (no separate gate).** Any `Skill` — including deep-research — exits
-  allowed and uncounted; the Workflow tool falls through to the count like any dispatch, and the agents
-  an engine spawns count too. So an engine is bounded by the cap rather than gated on its own: within
-  the cap it runs (silently when interactive, allowed when autonomous), and the over-cap rule (ask /
-  deny) catches it the moment its fan-out would exceed the cap. (The earlier per-engine `ask`/`deny`
-  gate keyed on `tool_input` naming deep-research was removed; see the superseded-design note above.)
+- **Engine gate** (the Workflow tool, or a `Skill` whose `tool_input` names deep-research) → gated on
+  its own regardless of the count: interactive `ask`, autonomous `deny`, `NOASK` lifts it. An engine's
+  internal agents bypass this hook (spawned by the engine runtime, not the Agent tool — verified), so
+  the cap cannot meter them; gating the launch is the only lever. An ordinary `Skill` is allowed and
+  never counted — matching on bare `Skill` and inspecting `tool_input` keeps the gate off normal skills.
 - Per-session override flag: `${HOME}/.mavitalk-agent-override-<sid>` holding `CAP=<n> NOASK=<0|1>`,
   written by the agent when the prompt pre-authorizes; read by the hook. (Agent-mediated, hook-honored.)
 
@@ -92,10 +92,9 @@ inert in headless, so the discriminator must be correct, not best-effort.
   pre-authorization). There is **no proactive per-fan-out prompt below the cap** — the cap is the only
   gate, so ordinary single/few-agent work is never interrupted. The unknown about whether the hook
   sees the agent model/type did **not** block this build (interactive detection uses `permission_mode`,
-  not the agent params). **Engines are bounded by this same cap, not a separate gate:** any Skill
-  (including deep-research) is allowed and uncounted, the Workflow tool counts as a launch, and the
-  agents an engine spawns count too — so an unattended run may use an engine *within* the cap, and the
-  over-cap rule (ask / deny) is what bounds it. (The earlier per-engine ask/deny gate was removed.)
+  not the agent params). **The engines are gated on their own** (ask interactive / deny autonomous,
+  `NOASK` lifts): a live test (2026-06-24) showed an engine's internal agents bypass this hook, so the
+  cap cannot meter them — gating the launch is the only lever. An ordinary Skill is allowed and uncounted.
 - **Phase 2 (later):** in-prompt interactive pre-authorization ("allow N, don't ask") via a
   session-keyed flag or a slash command; and `updatedInput` auto-policy (refuse `opus` for sub-agents,
   trim count) — the latter only if PreToolUse turns out to expose the agent's model/type.
@@ -106,21 +105,21 @@ inert in headless, so the discriminator must be correct, not best-effort.
   preserve the existing always-`exit 0` discipline but ensure the count path still denies over cap on
   malformed input.
 - **Only the owner raises the autonomous cap** (env at launch). The agent can lower, never raise it.
-- **Hooks DO fire inside sub-agents**, and the platform caps nesting depth at 5 (nesting exists only on
-  Claude Code ≥ v2.1.172). Whether this counter sees a whole nested tree under one `session_id` is not
-  yet verified, so review/research fan-out stays flat by construction — read-only `Explore` subagents
-  have no Agent tool and cannot spawn — until a depth-3 test proves tree-wide accounting.
+- **Hooks fire inside sub-agents, and tree-wide accounting holds for Agent-tool nesting** (verified
+  2026-06-24: a nested sub-agent shares the parent's `session_id`, so the cap counts the whole tree).
+  **Engines are the exception** — their internal agents are spawned by the engine runtime, not the
+  Agent tool, so they never reach this hook and cannot be counted; that is why engines are gated, not
+  metered. Depth still stays one level by construction (read-only `Explore` leaves cannot spawn).
 
 ## Rollout (done)
 
-1. ✅ Hook logic + `tests/test-agent-throttle.sh` (interactive/autonomous/override + engine cases).
+1. ✅ Hook logic + `tests/test-agent-throttle.sh` (interactive/autonomous/override + engine-gate cases).
 2. ✅ The `Workflow` / `Skill(deep-research)` permission denies in `~/.claude/settings.json` are gone, so
-   the in-plugin cap is the sole governor (no plugin → vanilla Claude Code).
-3. The cap is now the single bound on dispatch and on engines alike (no separate engine gate). Engines
-   are allowed within the cap in every mode.
+   the in-plugin hook is the sole governor (no plugin → vanilla Claude Code).
+3. ✅ Live verification (2026-06-24): Agent-tool nesting is counted tree-wide (one `session_id`); the
+   Workflow engine's internal agents bypass the hook (counter +1 for 3 agents). Conclusion: meter
+   direct dispatch by the cap, gate the engines (ask interactive / deny autonomous).
 
 Open follow-ups:
-- **Verify tree-wide accounting live** — confirm the engine's internal sub-agent spawns fire this hook
-  under one `session_id`, so the cap actually bounds an autonomous workflow/deep-research (depth-3 run).
 - (Later) in-prompt interactive pre-authorization ("allow N, don't ask") and an optional
   subscription-quota cost floor for approved interactive engine launches.

@@ -73,7 +73,6 @@ The hard backstop is the plugin's `agent-throttle.sh` hook: CAP 20 (`throttle.ha
 5-min window, per session. Stay well under it — a Full wave peaks at ≈6–9 agents (impact-map + base
 reviewers + activated conditionals + auditor); the post-fix re-review is sequenced into the next
 window. Reviewers and the impact-map producer are read-only `Explore` subagents: they have no Agent
-tool, so they cannot spawn further agents — the review wave is flat by construction. The platform caps
-sub-agent nesting depth at 5 independently; whether the throttle counts a whole nested tree under one
-`session_id` is not yet verified, so the flat-by-construction `Explore` safeguard is what keeps the
-wave bounded today.
+tool, so they cannot spawn further agents — the review wave is flat by construction. The throttle
+counts the whole nested tree under one `session_id` (verified), so even a nested wave is bounded by
+the cap; the flat-by-construction `Explore` design keeps it well under the cap regardless.

@@ -5,7 +5,7 @@
   "mcpServers": {
     "context7": { "type": "http", "url": "https://mcp.context7.com/mcp" }
   },
-  "version": "1.3.0",
+  "version": "1.3.1",
   "name": "mavitalk",
   "description": "Project-agnostic Claude Code workflow layer: ships shared discipline skills plus user-only session commands (start-session, end-session), injects the cross-project standards (how we work) at session start, and governs sub-agent fan-out (agent throttle).",
   "author": {

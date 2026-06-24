@@ -86,12 +86,12 @@ interrupting you — that's normal and encouraged. But if it tries to launch mor
 You decide: approve more, fewer, or none. In an unattended run (no one to ask) it is simply denied —
 the budget can't run away while you are not looking.
 
-**4. The agent reaches for a heavy engine.** Workflow and the deep-research skill can each fan out
-many agents. They are **not blocked outright** — they run under the *same* safeguard: every agent they
-spawn counts toward the 20-per-window cap, so the cap is their hard bound too. Within it they run
-without nagging you (even unattended); the moment the fan-out would exceed the cap, a present owner is
-asked and an unattended run is denied. So heavy engines are available even when you are away, yet can
-never run away.
+**4. The agent reaches for a heavy engine.** Workflow and the deep-research skill each fan out their
+agents through their own runtime, which **bypasses** the per-session counter — so the cap can't meter
+them (verified live). They are therefore gated on their own: when you are present the agent **asks
+first**, stating what it will run, why, how many agents, which models, and whether it nests; when no
+one is present it is **denied**. So these powerful tools are on demand for you, but can never fire
+unsupervised (unless you pre-authorize them at launch).
 
 **5. You finish for the day** — you type `/mavitalk:end-session`. The agent does **not** just commit.
 It runs your project's real gates and pastes the actual numbers; dispatches an independent multi-agent
@@ -210,40 +210,43 @@ It has four sections:
 - **Sub-agent model policy** — match the model to the task: Haiku for pure search/retrieval, Sonnet
   for synthesis/review/ordinary coding (default), Opus only for genuinely hard
   research/architecture/validation. Pick the cheapest tier that fits.
-- **Agent & research safety** — a per-session token-leak safeguard: one cap (default 20 / 5 min)
-  bounds every dispatch (Agent/Task/Workflow); a Skill incl. `deep-research` is allowed and uncounted,
-  so its spawned agents are what count. Within the cap → silent; over it → ask (interactive) / deny
-  (autonomous). Engines are bounded by the same cap, not denied. Depth stays one level by construction
-  (read-only `Explore` leaves); a multi-level fan-out needs explicit owner approval. Every dispatched
-  agent gets a bounded task with a stop condition.
+- **Agent & research safety** — a per-session token-leak safeguard. Direct dispatch (Agent/Task) is
+  metered by a cap (default 20 / 5 min, counted tree-wide): within → silent, over → ask (interactive)
+  / deny (autonomous). The mass-fan-out engines (Workflow, `deep-research`) spawn agents outside the
+  hook, so the cap can't meter them — they are gated on their own: ask interactive / deny autonomous.
+  Before any over-cap or engine fan-out the agent states what/why/how-many/which-models/whether-nests.
+  Depth stays one level by construction (read-only `Explore` leaves); multi-level needs explicit owner
+  approval. Every dispatched agent gets a bounded task with a stop condition.
 - **Authorship hygiene** — everything written into a repo reads as ordinary human engineering work:
   no AI/tool authorship fingerprints, and no ticket/plan/step codes in code or docs (process
   metadata belongs in the PR or issue tracker).
 
 ### The fan-out safeguard
 
-`agent-throttle.sh` runs on `PreToolUse` for `Agent|Task|Workflow|Skill` and enforces a per-session
-rolling-window cap so parallel sub-agent dispatch can never run away. It is a **safeguard against
-token blow-ups**, not a quality policy — ordinary work runs untouched.
+`agent-throttle.sh` runs on `PreToolUse` for `Agent|Task|Workflow|Skill`. It is a **safeguard against
+token blow-ups**, not a quality policy — ordinary work runs untouched. It does two things.
 
-- **Cap:** 20 launches per session per 5-minute window. The counter is a per-session file under
-  `$HOME`, updated atomically to survive concurrent dispatches.
+**1. Meters direct dispatch (Agent / Task)** with a per-session rolling-window count cap. These spawns
+fire the hook and are counted **tree-wide** — a nested sub-agent shares the parent's session id
+(verified live), so the cap bounds the whole tree.
+
+- **Cap:** 20 launches per session per 5-minute window (per-session counter file under `$HOME`, written
+  atomically).
 - **Within the cap:** exits silently — ordinary parallel work is never interrupted.
-- **Over the cap — interactive session** (`default` / `plan` / `acceptEdits` modes): returns
-  `ask` — the agent must tell you what it is launching and why so you can approve more, fewer, or none.
-- **Over the cap — autonomous session** (`bypassPermissions`, headless, or any unknown mode):
-  returns `deny` — the cap is the iron floor; the agent must sequence the work, use inline research
-  tools, or have you raise the cap at launch.
-- **Engines are bounded by the same cap, not separately denied.** A Skill (including deep-research) is
-  allowed and never counted; the agents it spawns are what count. The Workflow tool counts as a launch
-  and its fanned-out agents count too. So when you are away, agents may use workflows and deep-research
-  *within* the cap — the cap is the absolute backstop, and a fan-out that would exceed it is denied
-  unattended (or asked when you are present).
-- **Depth stays one level.** This hook counts launches, not depth. One level is kept by construction —
-  review/research leaves are read-only `Explore` subagents with no Agent tool, so they cannot spawn. A
-  multi-level fan-out needs explicit owner approval in an interactive session; it is never automatic.
-- **Fail-safe:** any error (unset `HOME`, missing tool, corrupted counter, unknown mode) never
-  crashes and never silently opens the gate — an unknown mode errs to the autonomous floor.
+- **Over the cap — interactive** (`default` / `plan` / `acceptEdits`): returns `ask` — the agent states
+  what it is launching, why, how many agents, which models, and whether it nests, so you can approve
+  more, fewer, or none.
+- **Over the cap — autonomous** (`bypassPermissions`, headless, or any unknown mode): returns `deny` —
+  the cap is the iron floor.
+
+**2. Gates the mass-fan-out engines** (the Workflow tool, the deep-research skill). An engine spawns
+its agents through its own runtime, **not** the Agent tool, so they never fire the hook and the cap
+**cannot meter them** (verified live: a 3-agent workflow bumped the counter by only 1). So each engine
+launch is gated on its own — **`ask` interactive, `deny` autonomous** — regardless of the count. An
+ordinary skill is allowed and never counted.
+
+- **Fail-safe:** any error (unset `HOME`, missing tool, corrupted counter, unknown mode) never crashes
+  and never silently opens the gate — an unknown mode errs to the autonomous floor.
 
 Environment overrides (set at launch):
 
@@ -251,13 +254,13 @@ Environment overrides (set at launch):
 |---|---|
 | `MAVITALK_AGENT_CAP=<n>` | Raise the per-window cap for the whole run (the only way to let an autonomous run exceed 20) |
 | `MAVITALK_HEADLESS=1` | Force autonomous classification regardless of `permission_mode` |
-| `MAVITALK_AGENT_NOASK=1` | Lift the gate entirely for the run (pre-authorization) |
+| `MAVITALK_AGENT_NOASK=1` | Lift the cap and the engine gate for the run (pre-authorization) |
 
-Hooks do fire inside sub-agents and the platform caps nesting depth at 5, but whether the counter
-sees a whole nested tree under one session id is not yet verified — so bounding an engine's fan-out by
-the cap (and keeping research/review flat) relies on that tree-wide accounting. Until a depth-3 test
-proves it live, the read-only `Explore` leaves (which cannot spawn) are what keep fan-out one level
-deep. Full design: [`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md).
+Verified live (2026-06-24): a nested **Agent-tool** sub-agent shares the parent's session id, so the
+cap counts the whole tree; but a **Workflow** engine spawns its agents outside the hook, so the cap
+cannot meter an engine — which is why engines are gated rather than counted. Depth stays one level by
+construction (read-only `Explore` leaves cannot spawn). Full design:
+[`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md).
 
 ### The session pipeline
 

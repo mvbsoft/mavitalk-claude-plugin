@@ -106,30 +106,26 @@ assert_empty "MAVITALK_AGENT_NOASK lifts the gate (allow over cap, even interact
   "$(decide na default MAVITALK_AGENT_NOASK=1)"
 rm -rf "$MH"
 
-# --- Engines are bounded by the SAME cap, not a separate gate ---
-# A Workflow launch counts like any dispatch: within the cap it runs silently (the owner is not
-# nagged) and it increments the shared counter; over the cap it follows the universal rule (deny
-# autonomous / ask interactive). deep-research is a Skill — allowed and never counted; the agents it
-# spawns are Agent/Task launches that the counter catches. (dec() is defined above — reuse it.)
+# --- Engine gate: the Workflow tool and the deep-research Skill are gated on their own ---
+# An engine's internal agents bypass this hook (spawned by the engine runtime, not the Agent tool —
+# verified live), so the count cap cannot meter them. The engine itself is gated regardless of the
+# count: ask interactive, deny autonomous, NOASK lifts it. An ordinary Skill is allowed and never
+# counted. (dec() is defined above — reuse it.)
 EG="$(mktemp -d)"
-
-# Workflow within the cap (interactive) is allowed silently — no engine ask — and IS counted.
-wf_ok="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf1"}' | env HOME="$EG" sh "$SCRIPT")"
-assert_empty "Workflow within the cap runs silently (no engine gate)" "$wf_ok"
+wf_int="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf1"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "Workflow interactive is gated with ask" "ask" "$(dec "$wf_int")"
+wf_auto="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"bypassPermissions","session_id":"wf2"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "Workflow autonomous is gated with deny" "deny" "$(dec "$wf_auto")"
+# A gated Workflow exits before the counter, so it leaves no counter file.
 [ -f "$EG/.mavitalk-agent-throttle-wf1" ] && wff=yes || wff=no
-assert_eq "Workflow IS counted toward the cap" "yes" "$wff"
+assert_eq "a gated Workflow is not counted toward the cap" "no" "$wff"
+wf_noask="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf3"}' | env HOME="$EG" MAVITALK_AGENT_NOASK=1 sh "$SCRIPT")"
+assert_empty "pre-authorized Workflow (NOASK) bypasses the engine gate" "$wf_noask"
 
-# Workflow over the cap follows the universal rule (cap=1: launch #1 allowed, #2 is the decision).
-wf_auto="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"bypassPermissions","session_id":"wf2"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT" >/dev/null; printf '%s' '{"tool_name":"Workflow","permission_mode":"bypassPermissions","session_id":"wf2"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT")"
-assert_eq "Workflow over the cap denies autonomously" "deny" "$(dec "$wf_auto")"
-wf_int="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf3"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT" >/dev/null; printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf3"}' | env HOME="$EG" MAVITALK_AGENT_CAP=1 sh "$SCRIPT")"
-assert_eq "Workflow over the cap asks interactively" "ask" "$(dec "$wf_int")"
-
-# deep-research is a Skill: allowed even autonomously and NOT counted (its agents are what count).
-dr="$(printf '%s' '{"tool_name":"Skill","permission_mode":"bypassPermissions","tool_input":{"command":"deep-research"},"session_id":"dr1"}' | env HOME="$EG" sh "$SCRIPT")"
-assert_empty "deep-research Skill is allowed (even autonomous), not gated" "$dr"
-[ -f "$EG/.mavitalk-agent-throttle-dr1" ] && drf=yes || drf=no
-assert_eq "deep-research Skill is not counted toward the cap" "no" "$drf"
+dr_int="$(printf '%s' '{"tool_name":"Skill","permission_mode":"default","tool_input":{"command":"deep-research"},"session_id":"dr1"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "deep-research Skill interactive is gated with ask" "ask" "$(dec "$dr_int")"
+dr_auto="$(printf '%s' '{"tool_name":"Skill","permission_mode":"bypassPermissions","tool_input":{"name":"deep-research"},"session_id":"dr2"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "deep-research Skill autonomous is gated with deny" "deny" "$(dec "$dr_auto")"
 
 # An ordinary Skill is allowed and must NOT consume the fan-out cap (no counter file is created).
 ord="$(printf '%s' '{"tool_name":"Skill","permission_mode":"default","tool_input":{"command":"end-session"},"session_id":"sk"}' | env HOME="$EG" sh "$SCRIPT")"

@@ -1,32 +1,32 @@
 #!/usr/bin/env sh
 # PreToolUse safeguard against sub-agent / token blow-ups — PER SESSION. Shipped with the mavitalk
 # plugin so any project that enables it gets the same backstop on any machine (no dependency on
-# ~/.claude/). This is a SAFEGUARD, not a quality policy: ordinary work runs untouched; the cap only
-# bites a runaway fan-out, or an agent that forgot to ask.
+# ~/.claude/). This is a SAFEGUARD, not a quality policy: ordinary work runs untouched; the cap/gate
+# only bite a runaway fan-out, or an agent that forgot to ask.
 #
-# ONE rule, applied to every dispatch (Agent / Task / Workflow): a rolling-window count cap per
-# session (default 20).
-#   - Within the cap                            -> allow silently (never nag for normal work).
-#   - Over the cap, interactive (owner present) -> "ask": the owner approves more, fewer, or none.
-#   - Over the cap, autonomous (owner absent)   -> "deny": the cap is the iron floor.
+# Two jobs, decided by the tool:
+#  1. THROTTLE meterable dispatch (Agent / Task): a per-session rolling-window count cap (default 20).
+#     These spawns fire this hook and are counted TREE-WIDE — a nested sub-agent shares the parent's
+#     session_id (verified: a 2-level Agent-tool tree incremented one counter by the whole tree size),
+#     so the cap bounds the entire tree.
+#       - within the cap            -> allow silently (never nag for normal work).
+#       - over the cap, interactive -> "ask": the owner approves more / fewer / none.
+#       - over the cap, autonomous  -> "deny": the cap is the iron floor.
+#  2. GATE the mass-fan-out ENGINES (the Workflow tool, and the deep-research Skill). An engine's
+#     internal agents are spawned by its own runtime, NOT via the Agent tool, so they do NOT fire this
+#     hook and CANNOT be counted (verified 2026-06-24: a 3-agent Workflow incremented the counter by
+#     only 1 — the launch itself). The cap therefore cannot meter an engine, so engines are gated on
+#     their own, regardless of the count:
+#       - interactive -> "ask" (the present owner supervises the unmeterable fan-out)
+#       - autonomous  -> "deny" (no owner to bound it; only a launch-time override lifts this)
+#     An ordinary (non-deep-research) Skill is allowed and is NEVER counted.
 #
-# Engines are NOT specially gated. A Skill (including deep-research) is allowed and never counted; the
-# agents it spawns are what count. The Workflow tool counts as a launch and its fanned-out agents
-# count too — so the SAME cap bounds an engine. Net effect: when the owner is ABSENT, agents may use
-# anything they need (workflows, deep-research) but the cap is an absolute backstop; when PRESENT,
-# within-cap runs silently and anything beyond it asks first. Launch-time pre-authorization is the
-# only way to exceed the cap without a human:
+# DEPTH stays ONE level by default, by construction (read-only `Explore` leaves have no Agent tool and
+# cannot spawn). A multi-level fan-out is OFF by default and needs explicit owner approval in an
+# interactive session — this hook counts launches, it does not detect depth.
+#
+# Launch-time pre-authorization is the only way to exceed the cap / lift the gate without a human:
 #   - MAVITALK_AGENT_CAP=<n> raises the cap; MAVITALK_AGENT_NOASK=1 lifts the gate entirely.
-#
-# DEPTH stays ONE level by construction, not by this hook: review/research leaves are read-only
-# `Explore` subagents with no Agent tool, so they cannot spawn. Multi-level fan-out (a sub-agent
-# spawning its own sub-agents) is off by default and must be approved by the owner in an interactive
-# session — a deliberate setup, never automatic. This hook does not detect depth; it counts launches.
-#
-# NOTE: bounding an engine's fan-out by this cap assumes the engine's internal sub-agent spawns fire
-# this PreToolUse hook under the SAME session_id (tree-wide accounting — see tests/test-agent-throttle.sh).
-# Hooks DO fire inside sub-agents and the platform caps nesting depth at 5; if tree-wide accounting does
-# not hold, the engine's own ceilings (e.g. Workflow ~1000 lifetime / 16 concurrent) bound the worst case.
 #
 # Fails SAFE: any unexpected input (unset HOME, missing date/jq, corrupt counter, unknown mode) must
 # never crash, and when the mode is unknown it errs to the autonomous floor — never to an open gate.
@@ -58,8 +58,30 @@ case "$pmode" in default|plan|acceptEdits) interactive=1 ;; esac
 noask=0
 [ "${MAVITALK_AGENT_NOASK:-}" = "1" ] && noask=1
 
-# A Skill (including deep-research) is normal work — allow it, and never count it toward the cap.
-# The agents a skill spawns are Agent/Task launches that DO get counted, so the cap still bounds it.
+# --- Engine gate: the Workflow tool, or a Skill invoking deep-research ---
+# An engine's internal agents bypass this hook (spawned by the engine runtime, not the Agent tool), so
+# the count cap cannot meter them. Gate the engine itself instead — ask interactive, deny autonomous.
+is_engine=0
+case "$tool" in
+  Workflow) is_engine=1 ;;
+  Skill)
+    # Bare-Skill matcher: inspect the tool_input for the deep-research skill (any field/shape).
+    si=$(printf '%s' "$input" | jq -r '.tool_input // empty' 2>/dev/null | tr 'A-Z_' 'a-z-')
+    case "$si" in *deep-research*) is_engine=1 ;; esac
+    ;;
+esac
+if [ "$is_engine" -eq 1 ] && [ "$noask" -eq 0 ]; then
+  if [ "$interactive" -eq 1 ]; then
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"mavitalk safeguard: %s is a mass-fan-out engine — its internal agents bypass the per-session cap, so the cap cannot meter them. Tell the owner WHAT it will do, WHY, roughly HOW MANY agents, which MODELS/types, and whether it NESTS — then let them approve or decline."}}\n' "$tool"
+  else
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"mavitalk safeguard: %s is a mass-fan-out engine and cannot run autonomously — its fan-out bypasses the cap and there is no owner to bound it. Do the work with bounded inline tools, or have the owner launch it in an interactive session (or pre-authorize at launch with MAVITALK_AGENT_NOASK=1)."}}\n' "$tool"
+  fi
+  exit 0
+fi
+
+# An ordinary Skill is normal work — allow it, and never count it toward the cap. (A pre-authorized
+# engine — NOASK — also falls through here: a deep-research Skill is allowed uncounted, Workflow is
+# counted as one launch below.)
 [ "$tool" = "Skill" ] && exit 0
 
 # --- Throttle counting: Agent / Task / Workflow (or an unknown tool → fail toward the floor) ---
@@ -89,7 +111,7 @@ fi
 
 # Over the cap: ask the present owner, or hard-deny an autonomous run.
 if [ "$interactive" -eq 1 ]; then
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"mavitalk safeguard: launch #%s within %ss exceeds the cap of %s. Tell the owner what you are launching and why — they can approve more, fewer, or none. (A multi-level fan-out always needs explicit owner approval, even under the cap.)"}}\n' "$n" "$WINDOW" "$CAP"
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"mavitalk safeguard: launch #%s within %ss exceeds the cap of %s. Tell the owner WHAT you are launching, WHY, HOW MANY agents, which MODELS/types, and whether it NESTS — they can approve more, fewer, or none."}}\n' "$n" "$WINDOW" "$CAP"
 else
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"mavitalk safeguard: launch #%s within %ss exceeds the cap of %s on an autonomous run. The cap is the iron floor when the owner is absent — sequence the work, do research inline (Explore / WebSearch), or have the owner raise MAVITALK_AGENT_CAP at launch."}}\n' "$n" "$WINDOW" "$CAP"
 fi

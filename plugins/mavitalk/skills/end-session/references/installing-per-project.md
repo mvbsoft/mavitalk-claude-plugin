@@ -35,10 +35,11 @@ Keep only facts: gate commands (or in `config.yml`), language convention, and a 
 Enabling this plugin already activates a hard agent-dispatch backstop: the plugin ships
 `hooks/agent-throttle.sh` (PreToolUse, CAP from `config.yml` `throttle.hard_cap`, default 20), so any
 project that enables `mavitalk@<marketplace>` gets it on any machine — it travels with the plugin,
-not with `~/.claude/`. Note: hooks DO fire inside sub-agents and the platform caps nesting depth at 5,
-but whether the counter sees a whole nested tree under one `session_id` is not yet verified — so review/
-research fan-out stays flat by construction (read-only `Explore` subagents cannot spawn) until a
-depth-3 test proves tree-wide accounting.
+not with `~/.claude/`. Note: hooks fire inside sub-agents and the throttle counts the whole nested
+tree under one `session_id` (verified), so Agent/Task dispatch is metered tree-wide. Mass-fan-out
+engines (Workflow, deep-research) are the exception — their internal agents bypass the hook, so they
+are gated (ask interactive / deny autonomous), not counted. Review/research fan-out also stays flat by
+construction (read-only `Explore` subagents cannot spawn).
 
 If a project wants a hard backstop **independent of the plugin** (e.g. for contributors who haven't
 enabled it), commit a project-level PreToolUse hook in `.claude/settings.json` pointing at a repo-local
