@@ -233,17 +233,25 @@ fire the hook and are counted **tree-wide** — a nested sub-agent shares the pa
 - **Cap:** 20 launches per session per 5-minute window (per-session counter file under `$HOME`, written
   atomically).
 - **Within the cap:** exits silently — ordinary parallel work is never interrupted.
-- **Over the cap — interactive** (`default` / `plan` / `acceptEdits`): returns `ask` — the agent states
-  what it is launching, why, how many agents, which models, and whether it nests, so you can approve
-  more, fewer, or none.
-- **Over the cap — autonomous** (`bypassPermissions`, headless, or any unknown mode): returns `deny` —
-  the cap is the iron floor.
+- **Over the cap:** approval is required — the same outcome in every attended mode (you are asked and
+  may approve), only the mechanism differs (see "How you're asked" below).
 
 **2. Gates the mass-fan-out engines** (the Workflow tool, the deep-research skill). An engine spawns
 its agents through its own runtime, **not** the Agent tool, so they never fire the hook and the cap
-**cannot meter them** (verified live: a 3-agent workflow bumped the counter by only 1). So each engine
-launch is gated on its own — **`ask` interactive, `deny` autonomous** — regardless of the count. An
-ordinary skill is allowed and never counted.
+**cannot meter them** (verified live: a 3-agent workflow bumped the counter by only 1). So every engine
+launch needs approval, the same way. An ordinary skill is allowed and never counted.
+
+**How you're asked — same outcome, mechanism depends on `permission_mode`:**
+
+- **`default` / `plan` / `acceptEdits`:** the hook returns `ask` — you get a real permission prompt
+  stating what, why, how many agents, which models, and whether it nests.
+- **`auto`:** a hook prompt is inert here, so the hook **denies** and tells the agent the path of a
+  one-shot approval *ticket*. The agent then asks you in chat (`AskUserQuestion`); on your **yes** it
+  drops the ticket (`touch <path>`) and retries — the hook honors that one launch and tears the ticket
+  up. Honored **only while you're present** and consumed on use: one deliberate approved launch, never
+  standing access.
+- **`bypassPermissions` / headless / unknown:** `deny`; the ticket is **ignored** (an unattended run
+  can never self-authorize). Use the env overrides below to pre-authorize.
 
 - **Fail-safe:** any error (unset `HOME`, missing tool, corrupted counter, unknown mode) never crashes
   and never silently opens the gate — an unknown mode errs to the autonomous floor.

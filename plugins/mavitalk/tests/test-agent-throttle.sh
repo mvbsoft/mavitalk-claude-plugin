@@ -134,6 +134,42 @@ assert_empty "an ordinary Skill is allowed" "$ord"
 assert_eq "an ordinary Skill is not counted toward the cap" "no" "$skf"
 rm -rf "$EG"
 
+# --- One-shot owner-approval ticket: rescues auto mode (where a hook "ask" is inert) ---
+# In auto the agent asks the owner in chat, then drops the ticket; the hook honors it ONCE and only
+# while a human is present. Headless/bypass never honor it (no self-authorization).
+TK="$(mktemp -d)"
+# auto + engine, no ticket → deny, and the reason tells the agent how to make a ticket.
+au_no="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"auto","session_id":"au1"}' | env HOME="$TK" sh "$SCRIPT")"
+assert_eq "auto engine without a ticket is denied" "deny" "$(dec "$au_no")"
+assert_eq "auto deny tells the agent to create a ticket" "true" \
+  "$(printf '%s' "$au_no" | jq -r '(.hookSpecificOutput.permissionDecisionReason // "") | contains("touch")')"
+# auto + engine, ticket present → allowed, and the ticket is consumed (one-shot).
+: > "$TK/.mavitalk-agent-approve-au2"
+au_ok="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"auto","session_id":"au2"}' | env HOME="$TK" sh "$SCRIPT")"
+assert_empty "auto engine WITH a ticket is allowed" "$au_ok"
+[ -f "$TK/.mavitalk-agent-approve-au2" ] && tkc=yes || tkc=no
+assert_eq "the approval ticket is consumed (one-shot)" "no" "$tkc"
+# headless ignores the ticket (deny) and must NOT consume it.
+: > "$TK/.mavitalk-agent-approve-au3"
+au_hl="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"auto","session_id":"au3"}' | env HOME="$TK" MAVITALK_HEADLESS=1 sh "$SCRIPT")"
+assert_eq "headless ignores the approval ticket (deny)" "deny" "$(dec "$au_hl")"
+[ -f "$TK/.mavitalk-agent-approve-au3" ] && tkh=yes || tkh=no
+assert_eq "headless does not consume the ticket" "yes" "$tkh"
+# auto + deep-research Skill, ticket present → allowed.
+: > "$TK/.mavitalk-agent-approve-dr"
+au_dr="$(printf '%s' '{"tool_name":"Skill","permission_mode":"auto","tool_input":{"command":"deep-research"},"session_id":"dr"}' | env HOME="$TK" sh "$SCRIPT")"
+assert_empty "auto deep-research WITH a ticket is allowed" "$au_dr"
+# auto + over-cap (cap=1): launch #1 within cap, then a ticket lets the over-cap launch #2 through.
+: > "$TK/.mavitalk-agent-approve-au4"
+printf '%s' '{"tool_name":"Agent","permission_mode":"auto","session_id":"au4"}' | env HOME="$TK" MAVITALK_AGENT_CAP=1 sh "$SCRIPT" >/dev/null
+au_oc="$(printf '%s' '{"tool_name":"Agent","permission_mode":"auto","session_id":"au4"}' | env HOME="$TK" MAVITALK_AGENT_CAP=1 sh "$SCRIPT")"
+assert_empty "auto over-cap WITH a ticket is allowed" "$au_oc"
+# auto + over-cap, no ticket → deny.
+printf '%s' '{"tool_name":"Agent","permission_mode":"auto","session_id":"au5"}' | env HOME="$TK" MAVITALK_AGENT_CAP=1 sh "$SCRIPT" >/dev/null
+au_ocn="$(printf '%s' '{"tool_name":"Agent","permission_mode":"auto","session_id":"au5"}' | env HOME="$TK" MAVITALK_AGENT_CAP=1 sh "$SCRIPT")"
+assert_eq "auto over-cap without a ticket is denied" "deny" "$(dec "$au_ocn")"
+rm -rf "$TK"
+
 # --- depth-3 tree-wide accounting (hook-logic level) ---
 # A nested sub-agent shares the parent's session_id, so the throttle keys every level of the tree to
 # ONE counter. Model a 3-level tree under cap=3 and confirm the 4th launch — wherever in the tree — is

@@ -64,8 +64,14 @@ part (it knows the plan and can re-plan in chat) because the hook cannot render 
   internal agents bypass this hook (spawned by the engine runtime, not the Agent tool — verified), so
   the cap cannot meter them; gating the launch is the only lever. An ordinary `Skill` is allowed and
   never counted — matching on bare `Skill` and inspecting `tool_input` keeps the gate off normal skills.
-- Per-session override flag: `${HOME}/.mavitalk-agent-override-<sid>` holding `CAP=<n> NOASK=<0|1>`,
-  written by the agent when the prompt pre-authorizes; read by the hook. (Agent-mediated, hook-honored.)
+- **One-shot approval ticket (built, 1.4.0)** — `${HOME}/.mavitalk-agent-approve-<sid>`. Rescues
+  **`auto`** mode, where a hook `ask` is inert (the classifier resolves it, the user never sees it —
+  verified via docs). The hook adds a third regime: `present` = a human is reachable (default / plan /
+  acceptEdits / auto). In `auto` an engine/over-cap launch is **denied** with a reason that hands the
+  agent the ticket path; the agent asks the owner in chat (`AskUserQuestion`, which reaches the user in
+  any mode) and, on an explicit yes, `touch`es the ticket and retries. The hook honors the ticket
+  **only while `present`**, and consumes it on use (one launch). Headless / bypass never honor it, so an
+  unattended run cannot self-authorize. (Agent-mediated, hook-honored — the Phase-2 flag, realized.)
 
 ## Mode detection (to pin empirically — see unknowns)
 
@@ -119,7 +125,11 @@ inert in headless, so the discriminator must be correct, not best-effort.
 3. ✅ Live verification (2026-06-24): Agent-tool nesting is counted tree-wide (one `session_id`); the
    Workflow engine's internal agents bypass the hook (counter +1 for 3 agents). Conclusion: meter
    direct dispatch by the cap, gate the engines (ask interactive / deny autonomous).
+4. ✅ `auto`-mode rescue (1.4.0): the one-shot approval ticket. A live Workflow in an `auto` session was
+   correctly denied (a hook `ask` is inert in `auto`); the ticket lets the agent get a real chat `yes`
+   and unlock exactly one launch, while headless/bypass still cannot self-authorize.
 
 Open follow-ups:
-- (Later) in-prompt interactive pre-authorization ("allow N, don't ask") and an optional
-  subscription-quota cost floor for approved interactive engine launches.
+- (Later) an optional subscription-quota cost floor for approved engine launches, and an `updatedInput`
+  auto-policy (refuse `opus` for sub-agents, trim count) if PreToolUse turns out to expose the agent's
+  model/type.

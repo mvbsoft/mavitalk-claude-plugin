@@ -66,19 +66,26 @@ The `agent-throttle` hook is a per-session backstop against runaway fan-out / to
 not police normal work. It does two things:
 
 **Meters direct dispatch (Agent / Task)** — a count cap (default 20 / 5-min rolling window, per
-session), counted **tree-wide** (a nested sub-agent shares the parent's session_id — verified).
-- **Within the cap → silent.** Ordinary single/few-agent work is never interrupted — don't nag.
-- **Over the cap, interactive → ask. Over the cap, autonomous → deny** (the iron floor; only
-  `MAVITALK_AGENT_CAP` at launch lifts it).
+session), counted **tree-wide** (a nested sub-agent shares the parent's session_id — verified). Within
+the cap → silent (don't nag); over the cap → approval is required (modes below).
 
 **Gates the mass-fan-out engines (the Workflow tool, the `deep-research` skill)** — an engine spawns
 its agents through its own runtime, NOT the Agent tool, so they bypass the hook and the cap CANNOT
-meter them (verified). So engines are gated on their own: **interactive → ask, autonomous → deny**
-(only `MAVITALK_AGENT_NOASK=1` at launch lifts it). An ordinary Skill is allowed and never counted.
+meter them (verified). So every engine launch needs approval. An ordinary Skill is allowed and uncounted.
 
-**Before any fan-out that needs approval (over-cap, or an engine), present the plan and wait for the
-owner's yes:** WHAT you will run, WHY, roughly HOW MANY agents, which MODELS/types, and whether it
-NESTS. The hook is only the backstop — rendering the rich plan is the agent's job.
+**Approval is the same outcome in every attended mode — the owner is asked and may approve — only the
+mechanism differs by `permission_mode`:**
+- **default / plan / acceptEdits:** the hook returns `ask`; the owner gets a real prompt.
+- **auto:** a hook prompt is inert, so the hook **denies** and hands you a ticket path. **You** must
+  then ask the owner in chat with `AskUserQuestion`; on an explicit YES, create the one-shot ticket the
+  deny names (`touch <path>`) and retry. Never write the ticket without a real yes — it is honored only
+  while a human is present and is consumed on use (one deliberate launch, not standing access).
+- **bypassPermissions / dontAsk / headless / unknown:** `deny`; the ticket is ignored (an unattended
+  run can never self-authorize). Only the owner's `MAVITALK_AGENT_NOASK=1` / `MAVITALK_AGENT_CAP` at
+  launch lifts it.
+
+**Whenever you seek approval, state:** WHAT you will run, WHY, roughly HOW MANY agents, which
+MODELS/types, and whether it NESTS. The hook is only the backstop — rendering the plan is your job.
 
 **Depth stays ONE level by default, by construction.** Research / review sub-agents must be read-only
 **`Explore`** — never `general-purpose` or any write-capable / agent-spawning type — so a leaf cannot
