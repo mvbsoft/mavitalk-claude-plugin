@@ -33,12 +33,33 @@ This is the "how we work" layer; **project-specific** rules live in each repo's 
   the right file. When a rule is a repeatable coding judgement with a clear trigger, propose a
   dedicated skill (how it works, when it triggers, what it solves).
 
-## Sub-agent model policy (match the model to the task)
-**Haiku** — pure search / codebase discovery / low-judgement retrieval (what the read-only `Explore`
-agent uses by design). **Sonnet** — research needing synthesis/judgement, review, and ordinary coding
-(default). **Opus** — only for genuinely hard research/architecture, or a genuinely hard
-correctness/validation check. Pick the cheapest tier that fits; re-run an ambiguous Haiku search on
-Sonnet before relying on it.
+## Sub-agent model policy (route by what the task NEEDS, not by its label)
+Match the model to the task's TYPE × STAKES × DEPTH, with floors and a cascade — not by the word
+"search". The model keys live in `.mavitalk/config.yml` (`retrieval_model` / `reviewer_model` /
+`judge_model` / `escalate_model`); this table is the single source of truth they encode.
+
+| Subtask | Base model | Floor (never below) |
+|---|---|---|
+| Mechanical lookup: `grep`, "where is X", listing | Haiku (`retrieval_model`) | — |
+| Important / deep / synthesis-heavy search | Sonnet, complex → Opus | Sonnet (never Haiku) |
+| Reviewer / synthesis / ordinary code | Sonnet (`reviewer_model`) | Sonnet |
+| Detailed code research / architecture / final judge / contested call | Opus (`judge_model` / `escalate_model`) | Opus |
+| Grounded fact-verification vs docs/internet | Sonnet; high-stakes → Opus | Sonnet |
+
+Three mechanisms keep important work off weak models:
+- **Floors.** Anything high-stakes (auth / payments / migrations / security / an architectural
+  decision) floors at Sonnet; final judgement and correctness floor at Opus. Haiku never reaches
+  important work.
+- **Asymmetric cascade.** When a cheap model returns an ambiguous or incomplete result, re-run it one
+  tier up — escalating on LOW stated confidence is the safe side. Do NOT trust HIGH "verbalized
+  confidence" to skip a floor (models systematically overrate themselves); prefer self-consistency (a
+  couple of runs). Verbalized confidence is a secondary signal, never the gate — floors and
+  requirement-classification carry the decision.
+- **Classify by requirement, not by word.** The trigger is importance/depth/stakes, not whether the
+  task is "called" a search — a hard analysis goes to the doctor even though it is "just an analysis".
+
+Pick the cheapest tier that meets the task. (deep-research, if ever enabled: sub-searches → Haiku,
+synthesis → Sonnet, final roll-up → Opus; a workflow step takes the model its role needs.)
 
 ## Agent & research safety (prevent runaway sub-agents)
 - Research / review sub-agents must be read-only **`Explore`** — never `general-purpose` or any
