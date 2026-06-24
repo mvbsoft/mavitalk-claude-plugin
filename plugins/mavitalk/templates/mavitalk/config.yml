@@ -11,20 +11,20 @@ gates:                   # omit any line to fall back to stack autodetection
   format: ""
 review:
   default_tier: auto             # auto | light | medium | full
+  headless_tier: medium          # resolves default_tier=auto when no one can answer AskUserQuestion
   reviewer_model: sonnet         # base reviewers
   retrieval_model: haiku         # impact-map / extraction
   judge_model: opus              # always Opus (pinned)
-  escalate_model: opus           # contested-finding adjudicator
+  escalate_model: opus           # contested-finding adjudicator; also high-stakes grounded_verifier
   full_reviewer_escalation: [correctness, architecture]  # bumped to Opus in Full
   full_context: graph            # graph | wide-impact (fallback for huge repos)
   confidence_floor: 0.5          # part of the soft-drop rule
   escalate_threshold: 0.7        # Critical below this → Opus adjudicator
-  max_review_agents: 10          # base-wave budget (reviewers + auditor); see tiers.md "Agent budget"
   rosters:
     light:  [correctness, quality_docs]
     medium: [correctness, architecture, security, quality_docs, test_adequacy, data_flow_contracts]
-    full:   [correctness, architecture, maintainability, security, business_logic,
-             data_flow_contracts, quality_docs, test_adequacy, production_readiness]
+    full:   [correctness, architecture, maintainability, security, business_logic, data_flow_contracts,
+             quality_docs, test_adequacy, production_readiness, grounded_verifier]
   activation:                    # conditional reviewers (skip when the condition is false)
     business_logic:
       touches: [payment, order, balance, state-machine, auth-flow]
@@ -33,9 +33,12 @@ review:
     production_readiness:
       touches: [service, handler, middleware, infra]
       requires: observability_conventions
+    architecture_decision:       # folds into the architecture reviewer (and bumps it to Opus) when set
+      touches: [new-dependency, datastore, protocol, cross-cutting-pattern]
+    grounded_verifier:           # verify external API/lib usage against current authoritative docs
+      touches: [external-surface]
 throttle:
   hard_cap: 30                   # plugin-shipped agent-throttle hook (per 5-min window, per session)
-  self_limit: 15                 # verification never dispatches more than this per window
 security:
   deterministic: []              # e.g. [gitleaks, semgrep, "npm audit"] — Full, run first
 project:

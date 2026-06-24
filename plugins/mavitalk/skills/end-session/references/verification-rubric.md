@@ -13,18 +13,22 @@ and `references/reviewer-prompts.md` for the exact prompts.
 2. **Context build (Medium+).** Dispatch the impact-map producer (retrieval model). Medium = 1-hop
    blast radius; Full = full repo graph (or `wide-impact` on huge repos). Output: impact set +
    curated file list + activation flags. Light skips this (reviewers read files on demand).
-3. **Requirement traceability.** The Requirement Auditor (Medium+, isolated — transcript+diff only)
-   compares transcript ↔ diff; in Light, do this pass yourself with the same evidence hierarchy
-   (test/SHA > path > assertion=reject). No evidence → OPEN. Unrequested change → SCOPE-CREEP. Runs
-   concurrently with the review wave (it does not read reviewer output).
+3. **Requirement traceability.** When the session had explicit agreed requirements, the Requirement
+   Auditor (Medium+, isolated — transcript+diff only) compares transcript ↔ diff; in Light, do this
+   pass yourself with the same evidence hierarchy (test/SHA > path > assertion=reject). No evidence →
+   OPEN. Unrequested change → SCOPE-CREEP. Runs concurrently with the review wave (it does not read
+   reviewer output). Skip when there were no stated requirements to trace.
 4. **Tiered review.** Dispatch the activated reviewers per `references/tiers.md` using
-   `references/reviewer-prompts.md`, each with the curated context + its blind-spots line. Full adds
-   the Sweep gap-hunt after the base wave returns.
-5. **Aggregate → fix → re-verify.** Judge (Opus always) refutes-first, applies the soft-drop rule,
-   re-adjudicates contested Criticals (confidence < `escalate_threshold`) or reviewer conflicts on an
-   Opus adjudicator, and escalates genuine conflicts to the developer. Fix Critical/Important via TDD.
-   Re-run gates; the last green run must post-date the last edit. In Full, re-review the changed files.
+   `references/reviewer-prompts.md`, each with the curated context + its blind-spots line. The
+   correctness reviewer ends with a gap-hunt pass (defects a first read misses) — there is no separate
+   Sweep agent.
+5. **Aggregate → fix → re-verify.** Judge (Opus always) reads findings de-identified and in random
+   order, refutes-first, applies the soft-drop rule, accepts a Critical only on a second axis OR a
+   reproducible proof (else routes it to a "needs human eye" track), re-adjudicates contested Criticals
+   (confidence < `escalate_threshold`) or reviewer conflicts on an Opus adjudicator, and escalates
+   genuine conflicts to the developer. The Judge adds no findings of its own. Fix Critical/Important via
+   TDD. Re-run gates; the last green run must post-date the last edit. In Full, re-review the changed files.
 
-Respect the agent budget: self-limit `throttle.self_limit` (15) dispatches per 5-min window; sequence
-Sweep and the post-fix re-review into the next window (hard backstop `throttle.hard_cap` 30, see the
-design spec §15).
+Respect the agent budget: the plugin's `agent-throttle.sh` hook caps dispatch at `throttle.hard_cap`
+(30) per 5-min window. A Full wave peaks at ≈6–9 agents; sequence the post-fix re-review into the next
+window. Reviewers are read-only `Explore` subagents (no Agent tool → flat by construction).

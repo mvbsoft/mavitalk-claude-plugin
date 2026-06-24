@@ -33,9 +33,9 @@ traceability (isolated auditor) → tiered review of the activated reviewers (`r
 `references/reviewer-prompts.md`, each with its blind-spots line) → aggregate (Opus Judge: refute-first,
 soft-drop, escalate contested Criticals/conflicts to an Opus adjudicator, genuine conflicts to you) →
 fix Critical/Important via TDD → re-run gates (last green post-dates last edit; Full re-reviews changed
-files). The Judge runs on Opus at Medium/Full; Light uses lightweight main-thread dedup. Self-limit
-dispatch to 15 agents / 5-min window; the plugin's agent-throttle hook (CAP 30, top-level dispatch) is
-the hard backstop.
+files). The Judge runs on Opus at Medium/Full; Light uses lightweight main-thread dedup. Reviewers are
+read-only `Explore` subagents (flat by construction); the plugin's agent-throttle hook (CAP 30) is the
+hard backstop.
 
 ## Phase 2 — HAND OFF
 Persist per `references/commit-and-persist.md`: session log, project-memory (Active context only),
@@ -94,7 +94,7 @@ all three phases are done with evidence.
 ## References
 
 - `references/tiers.md` — the assessment (signals → proposed tier) and the Light/Medium/Full composition + agent budget.
-- `references/reviewer-prompts.md` — the 9-reviewer roster, blind-spots matrix, impact-map producer, Requirement Auditor, Sweep, and the Opus refute-first Judge.
+- `references/reviewer-prompts.md` — the reviewer roster, blind-spots matrix, impact-map producer, Requirement Auditor, and the Opus refute-first Judge.
 - `references/commit-and-persist.md` — the commit gate (no attribution) and the `.mavitalk/` persistence rules.
 - `references/verification-rubric.md` — the gates→traceability→tiered-review→aggregate sequence.
 - `references/handoff-template.md` — the full next-session field template.

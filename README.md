@@ -200,9 +200,9 @@ or ends a session through this plugin. All session state lives in one per-projec
 
    | Tier | Review agents | ≈ cost |
    |---|---|---|
-   | **Light** | correctness · architecture · security · quality+docs | ~80k tokens |
-   | **Medium** | + requirement auditor (chat ↔ code) + judge | ~110k |
-   | **Full** | + deterministic security scan + post-fix re-review | ~180k |
+   | **Light** | correctness (+ gap-hunt) · quality+docs | ~80–110k tokens |
+   | **Medium** | + architecture · security · test-adequacy · data-flow · requirement auditor · Opus judge | ~150–250k |
+   | **Full** | + maintainability · activated conditionals (business-logic, production, grounded-verifier) · security scan · post-fix re-review | ~350–600k |
 
 2. **Hand off** — writes the per-session log (`sessions/`), rolling `memory/project-memory.md`, and
    the continuation file `next-session.md` (carrying `last_verified_sha`).
@@ -312,7 +312,7 @@ into a project the first time it closes a session there:
 - `config.yml` — the project's workflow configuration: artifact language, conversation language
   (auto-detect), commit attribution (`none`), gate commands, review settings (default tier, reviewer
   model `sonnet`, retrieval `haiku`, judge `opus`, per-tier reviewer rosters, conditional reviewers,
-  throttle cap 30 / self-limit 15), security tools, and paths.
+  throttle cap 30), security tools, and paths.
 - `next-session.md` — the handoff template (status, branch, `last_verified_sha`, current state, done,
   not done, known issues, architecture snapshot, dead ends, immediate next action).
 - `memory/project-memory.md` — the persistent memory template (identity, stack, architecture,
@@ -328,7 +328,7 @@ into a project the first time it closes a session there:
 
 **Per-project** (`.mavitalk/config.yml`): gate commands, conversation/artifact language, commit
 attribution, and the review pipeline (default tier, models per role, reviewer rosters, throttle
-limits). The session skills read this first, falling back to `CLAUDE.md` / stack autodetect.
+cap). The session skills read this first, falling back to `CLAUDE.md` / stack autodetect.
 
 ---
 
