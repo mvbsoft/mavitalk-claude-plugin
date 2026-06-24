@@ -13,7 +13,7 @@ assert_eq "SessionStart is only inject-standards (no next-session injection)" "i
   "$(jq -r '[.hooks.SessionStart[].hooks[].command | sub(".*/";"")] | unique | join(",")' "$M")"
 assert_eq "registers PreToolUse agent-throttle hook" "ok" \
   "$(jq -e '.hooks.PreToolUse' "$M" >/dev/null 2>&1 && echo ok || echo bad)"
-assert_eq "PreToolUse matcher covers Agent|Task|Workflow" "Agent|Task|Workflow" \
+assert_eq "PreToolUse matcher covers Agent|Task|Workflow|Skill" "Agent|Task|Workflow|Skill" \
   "$(jq -r '.hooks.PreToolUse[0].matcher' "$M")"
 assert_eq "PreToolUse command points at agent-throttle.sh" "agent-throttle.sh" \
   "$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$M" | sed 's|.*/||')"

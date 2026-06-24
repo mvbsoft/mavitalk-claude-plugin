@@ -13,7 +13,9 @@ projects no longer duplicate them (no plugin -> none apply; personal preferences
 language stay in `~/.claude/CLAUDE.md`). This governor is the *enforcement and evolution* of the
 "Agent & research safety" part of those standards: today that section states a flat ceiling and the
 disabled Workflow/deep-research; when the governor ships, that section is rewritten to describe the
-ask-interactive / cap-autonomous regimes, and the Workflow/deep-research denies are lifted.
+ask-interactive / cap-autonomous regimes. The Workflow/deep-research denies stay in place until the
+subscription-quota budget lands; only then do they convert to the hook-gate (ask interactive / deny
+autonomous), so there is no unguarded window.
 
 ## Policy (three layers, highest precedence first)
 
@@ -40,12 +42,17 @@ accordingly. If the prompt explicitly pre-authorizes (cap + no-ask), record it (
 flag) and proceed up to that cap without asking. Never fan out silently.* The agent does the rich
 part (it knows the plan and can re-plan in chat) because the hook cannot render a form.
 
-**Layer 2 — the hook (PreToolUse on `Agent|Task|Workflow`, hard backstop).** Extend `agent-throttle.sh`:
+**Layer 2 — the hook (PreToolUse on `Agent|Task|Workflow|Skill`, hard backstop).** Extend `agent-throttle.sh`:
 - Read `permission_mode` from the hook input to pick the regime.
 - **Pre-authorized** (env or session override flag present) → enforce that cap, never ask.
 - **Interactive** → return `permissionDecision: "ask"` with a reason describing the launch, so even if
   the agent skipped the rule the owner still gets a gate. The owner can approve beyond 30.
 - **Autonomous** → current behavior: count, `deny` over cap.
+- **Engine gate** (the Workflow tool, or a `Skill` whose `tool_input` names deep-research) → gate
+  regardless of the count, since one launch can fan out to hundreds: interactive `ask`, autonomous
+  `deny`, pre-authorization (`NOASK`) lifts it. An ordinary `Skill` is allowed and never counted —
+  matching on bare `Skill` and then inspecting `tool_input` is what keeps the throttle off normal skill
+  calls (a `Skill(deep-research)` permission-rule could not do that distinction).
 - Per-session override flag: `${HOME}/.mavitalk-agent-override-<sid>` holding `CAP=<n> NOASK=<0|1>`,
   written by the agent when the prompt pre-authorizes; read by the hook. (Agent-mediated, hook-honored.)
 
@@ -74,7 +81,10 @@ inert in headless, so the discriminator must be correct, not best-effort.
   pre-authorization). There is **no proactive per-fan-out prompt below the cap** — the cap is the only
   gate, so ordinary single/few-agent work is never interrupted. The unknown about whether the hook
   sees the agent model/type did **not** block this build (interactive detection uses `permission_mode`,
-  not the agent params).
+  not the agent params). The **engine gate** is also built: the Workflow tool and a deep-research
+  `Skill` are gated (ask interactive / deny autonomous) regardless of the count, and an ordinary Skill
+  is allowed without being counted. It is dormant while the permission denies stand and activates when
+  they are lifted.
 - **Phase 2 (later):** in-prompt interactive pre-authorization ("allow N, don't ask") via a
   session-keyed flag or a slash command; and `updatedInput` auto-policy (refuse `opus` for sub-agents,
   trim count) — the latter only if PreToolUse turns out to expose the agent's model/type.
@@ -85,12 +95,17 @@ inert in headless, so the discriminator must be correct, not best-effort.
   preserve the existing always-`exit 0` discipline but ensure the count path still denies over cap on
   malformed input.
 - **Only the owner raises the autonomous cap** (env at launch). The agent can lower, never raise it.
-- Hook governs **direct main-session dispatch only** (PreToolUse does not fire inside sub-agents);
-  nested fan-out stays bounded by the no-nested-fan-out rule, as today.
+- **Hooks DO fire inside sub-agents**, and the platform caps nesting depth at 5 (nesting exists only on
+  Claude Code ≥ v2.1.172). Whether this counter sees a whole nested tree under one `session_id` is not
+  yet verified, so review/research fan-out stays flat by construction — read-only `Explore` subagents
+  have no Agent tool and cannot spawn — until a depth-3 test proves tree-wide accounting.
 
 ## Rollout
 
-1. Add hook logic + extend `tests/test-agent-throttle.sh` (interactive/autonomous/override cases).
-2. Verify live in one project: interactive `ask`, headless cap, in-prompt pre-authorization.
-3. **Only then** drop the `Workflow` / `Skill(deep-research)` denies in the projects — so there is no
-   unguarded window between enabling fan-out and shipping the gate.
+1. Add hook logic + extend `tests/test-agent-throttle.sh` (interactive/autonomous/override + engine-gate cases).
+2. Verify live in one project: interactive `ask`, headless cap, in-prompt pre-authorization, the engine gate.
+3. Land the subscription-quota budget (5-hour / weekly `used_percentage` thresholds): an *approved*
+   interactive engine launch is bounded only by that budget, not by the count cap.
+4. **Only then** drop the `Workflow` / `Skill(deep-research)` denies in `~/.claude/settings.json`
+   (where they live — not in the projects) — so there is no unguarded window between enabling fan-out
+   and shipping the gate plus its budget.

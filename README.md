@@ -155,7 +155,7 @@ It has four sections:
 
 ### The fan-out governor
 
-`agent-throttle.sh` runs on `PreToolUse` for `Agent|Task|Workflow` and enforces a per-session
+`agent-throttle.sh` runs on `PreToolUse` for `Agent|Task|Workflow|Skill` and enforces a per-session
 rolling-window cap so parallel sub-agent dispatch can never run away. It is the hard backstop behind
 the "agent & research safety" standard.
 
@@ -168,6 +168,10 @@ the "agent & research safety" standard.
 - **Over the cap — autonomous session** (`bypassPermissions`, headless, or any unknown mode):
   returns `deny` — the agent must sequence the work, use inline research tools, or have you raise the
   cap at launch.
+- **Mass-fan-out engines** (the Workflow tool, or a `Skill` invoking deep-research): gated regardless
+  of the cap — `ask` interactive, `deny` autonomous — because one launch can spin up hundreds of
+  agents. An ordinary skill is allowed and never counted. (Dormant while those tools are denied in
+  permissions; ready for when that gate is lifted.)
 - **Fail-safe:** any error (unset `HOME`, missing tool, corrupted counter, unknown mode) never
   crashes and never silently opens the gate — an unknown mode errs to the autonomous floor.
 
@@ -179,9 +183,10 @@ Environment overrides (set at launch):
 | `MAVITALK_HEADLESS=1` | Force autonomous classification regardless of `permission_mode` |
 | `MAVITALK_AGENT_NOASK=1` | Lift the gate entirely for the run (pre-authorization) |
 
-The hook governs only **direct main-session dispatch** — `PreToolUse` does not fire inside
-sub-agents, so nested fan-out is bounded by the "no nested fan-out" rule in the standards, not by
-this hook. Full design: [`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md).
+Hooks do fire inside sub-agents and the platform caps nesting depth at 5, but whether the counter
+sees a whole nested tree under one session id is not yet verified — so review/research fan-out stays
+flat by construction (read-only `Explore` subagents cannot spawn) until a depth-3 test proves
+tree-wide accounting. Full design: [`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md).
 
 ### The session pipeline
 

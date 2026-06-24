@@ -106,4 +106,48 @@ assert_empty "MAVITALK_AGENT_NOASK lifts the gate (allow over cap, even interact
   "$(decide na default MAVITALK_AGENT_NOASK=1)"
 rm -rf "$MH"
 
+# --- Engine gate: the Workflow tool and the deep-research Skill bypass the count and gate on their own ---
+# (dec() is defined above — reuse it.)
+EG="$(mktemp -d)"
+wf_int="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf1"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "Workflow interactive is gated with ask" "ask" "$(dec "$wf_int")"
+wf_auto="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"bypassPermissions","session_id":"wf2"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "Workflow autonomous is gated with deny" "deny" "$(dec "$wf_auto")"
+wf_noask="$(printf '%s' '{"tool_name":"Workflow","permission_mode":"default","session_id":"wf3"}' | env HOME="$EG" MAVITALK_AGENT_NOASK=1 sh "$SCRIPT")"
+assert_empty "pre-authorized Workflow bypasses the engine gate" "$wf_noask"
+
+dr_int="$(printf '%s' '{"tool_name":"Skill","permission_mode":"default","tool_input":{"command":"deep-research"},"session_id":"dr1"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "deep-research Skill interactive is gated with ask" "ask" "$(dec "$dr_int")"
+dr_auto="$(printf '%s' '{"tool_name":"Skill","permission_mode":"bypassPermissions","tool_input":{"name":"deep-research"},"session_id":"dr2"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_eq "deep-research Skill autonomous is gated with deny" "deny" "$(dec "$dr_auto")"
+
+# An ordinary Skill is allowed and must NOT consume the fan-out cap (no counter file is created).
+ord="$(printf '%s' '{"tool_name":"Skill","permission_mode":"default","tool_input":{"command":"end-session"},"session_id":"sk"}' | env HOME="$EG" sh "$SCRIPT")"
+assert_empty "an ordinary Skill is allowed" "$ord"
+[ -f "$EG/.mavitalk-agent-throttle-sk" ] && skf=yes || skf=no
+assert_eq "an ordinary Skill is not counted toward the cap" "no" "$skf"
+rm -rf "$EG"
+
+# --- depth-3 tree-wide accounting (hook-logic level) ---
+# A nested sub-agent shares the parent's session_id, so the throttle keys every level of the tree to
+# ONE counter. Model a 3-level tree under cap=3 and confirm the 4th launch — wherever in the tree — is
+# the one denied (the cap counts the whole tree, not per level), and that exactly one counter file
+# backs the whole session. Whether the PLATFORM passes the same session_id at depth >=2 is the open
+# integration question; this proves the hook accounts tree-wide GIVEN that it does.
+TR="$(mktemp -d)"
+tr_pl='{"tool_name":"Agent","session_id":"tree"}'
+tr_early=""
+k=1
+while [ "$k" -le 3 ]; do
+  o="$(printf '%s' "$tr_pl" | env HOME="$TR" MAVITALK_AGENT_CAP=3 sh "$SCRIPT")"
+  [ -n "$o" ] && tr_early="launch $k denied early: $o"
+  k=$((k + 1))
+done
+assert_empty "tree-wide: 3 launches across levels allowed under cap=3" "$tr_early"
+tr4="$(printf '%s' "$tr_pl" | env HOME="$TR" MAVITALK_AGENT_CAP=3 sh "$SCRIPT")"
+assert_eq "tree-wide: the 4th launch anywhere in the tree is denied" "deny" "$(dec "$tr4")"
+nfiles="$(find "$TR" -name '.mavitalk-agent-throttle-*' 2>/dev/null | grep -c .)"
+assert_eq "tree-wide: a single shared counter file for the session" "1" "$nfiles"
+rm -rf "$TR"
+
 finish_tests
