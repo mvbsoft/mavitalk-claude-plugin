@@ -482,8 +482,9 @@ It runs every `test-*.sh` and exits non-zero on any failure. Coverage:
 | `test-agent-throttle.sh` | the full governor: cap, per-session counters, window expiry, sanitization, corrupted-file recovery, mode-aware ask/deny, and every env override |
 | `test-inject-standards.sh` | standards injected as `SessionStart` context; personal language rule absent |
 | `test-session-signals.sh` | working-tree facts: file/line counts, touched categories, activation hints, false-positive guards |
-| `test-plugin-manifest.sh` | manifest is valid JSON and wires the hooks correctly (no `UserPromptSubmit`; `SessionStart` only injects standards) |
+| `test-plugin-manifest.sh` | manifest is valid JSON and wires the hooks correctly (no `UserPromptSubmit`; `SessionStart` registers both the standards and config-guard hooks) |
 | `test-skill-invocation.sh` | the two session commands are user-only (`disable-model-invocation`); the 16 disciplines stay model-invocable |
+| `test-review-config.sh` | the review roster is intact: each reviewer has a prompt and a blind-spots line, the activation entries exist, the deprecated `max_review_agents` is gone from the template, and no standalone Sweep section remains |
 | `test-config-schema.sh` | the schema doc lists every recognized section and the deprecated key, defines both validation tiers, and stays in sync with the shipped template |
 | `test-session-config-guard.sh` | the guard's verdicts: missing / blocker / ok / advisory, attended vs. headless directives, and that an empty-string gate does not count as present |
 | `test-configure-skill.sh` | the `configure` skill stays model-invocable, documents scan → propose → confirm → write, and the doctor reference defines blockers/warnings |

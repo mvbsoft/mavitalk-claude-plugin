@@ -481,8 +481,9 @@ sh plugins/mavitalk/tests/run-tests.sh
 | `test-agent-throttle.sh` | повний governor: ліміт, посесійні лічильники, закінчення вікна, санітизація, відновлення після пошкодженого файлу, mode-aware ask/deny і кожен env-override |
 | `test-inject-standards.sh` | стандарти інжектяться як `SessionStart`-контекст; правило особистої мови відсутнє |
 | `test-session-signals.sh` | факти робочого дерева: лічильники файлів/рядків, торкнуті категорії, activation-hints, захист від хибних спрацювань |
-| `test-plugin-manifest.sh` | маніфест — валідний JSON і правильно прописує хуки (нема `UserPromptSubmit`; `SessionStart` лише інжектить стандарти) |
+| `test-plugin-manifest.sh` | маніфест — валідний JSON і правильно прописує хуки (нема `UserPromptSubmit`; `SessionStart` реєструє обидва хуки — стандарти й config-guard) |
 | `test-skill-invocation.sh` | дві команди сесії — лише-для-користувача (`disable-model-invocation`); 16 дисциплін лишаються model-invocable |
+| `test-review-config.sh` | ростер рев'ю цілий: кожен рев'юер має промпт і blind-spots-рядок, є записи активації, застарілий `max_review_agents` прибрано з шаблону, немає окремої секції Sweep |
 | `test-config-schema.sh` | доки схеми перелічують кожну розпізнану секцію й застарілий ключ, визначають обидва рівні валідації й лишаються синхронними з шаблоном |
 | `test-session-config-guard.sh` | вердикти guard-хука: missing / blocker / ok / advisory, директиви для присутньої людини й headless, і що порожній рядок-гейт не рахується як наявний |
 | `test-configure-skill.sh` | скіл `configure` лишається model-invocable, документує scan → propose → confirm → write, а doctor-довідник визначає блокери/попередження |
