@@ -4,7 +4,7 @@ language:
   conversation: auto     # detect from the user's message
 attribution:
   commit: none           # none | ai-assisted | co-authored
-gates:                   # omit any line to fall back to stack autodetection
+gates:                   # omit any line to fall back to the AGENTS.md runner, else skip with a warning
   test: ""
   lint: ""
   types: ""

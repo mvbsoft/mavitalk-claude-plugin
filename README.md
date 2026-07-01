@@ -8,9 +8,10 @@ repository that enables it. One install gives a repo three things:
 
 1. **A shared operating contract** — the "how we work" standards, injected into every session at
    start, so the agent follows the same rules everywhere without copying them into each repo.
-2. **A curated skill library** — 18 reusable engineering procedures: 16 disciplines the agent
-   triggers automatically (documentation, git, architecture, code quality, language/stack, safety)
-   plus two **user-only** session commands (`/mavitalk:start-session`, `/mavitalk:end-session`).
+2. **A curated skill library** — 19 reusable engineering procedures: 16 disciplines the agent
+   triggers automatically (documentation, git, architecture, code quality, language/stack, safety),
+   one project-setup wizard offered when a project isn't configured yet (`configure`), plus two
+   **user-only** session commands (`/mavitalk:start-session`, `/mavitalk:end-session`).
 3. **A fan-out governor** — a hard limit on parallel sub-agent launches, so runaway parallelism
    can never burn the token budget.
 
@@ -192,13 +193,14 @@ regardless.
 ### Hooks
 
 Hooks are declared entirely in `plugins/mavitalk/.claude-plugin/plugin.json` (there is no separate
-`hooks.json`). All commands resolve through `${CLAUDE_PLUGIN_ROOT}` for portability. Two
+`hooks.json`). All commands resolve through `${CLAUDE_PLUGIN_ROOT}` for portability. Three
 registrations across two events drive the hooked scripts; `session-signals.sh` is a helper, invoked
 by the end-session command rather than wired to an event:
 
 | Event | Matcher | Script | What it does |
 |---|---|---|---|
 | `SessionStart` | `startup\|resume` | `inject-standards.sh` | Injects the cross-project standards (`mavitalk-standards.md`) as session context |
+| `SessionStart` | `startup\|resume` | `session-config-guard.sh` | Checks `.mavitalk/config.yml` and injects a dormant / offer-configure / advisory directive — gates the project-specific session lifecycle on a valid config; the standards above stay always-on |
 | `PreToolUse` | `Agent\|Task\|Workflow\|Skill` | `agent-throttle.sh` | The fan-out governor — caps parallel sub-agent launches and gates the workflow/deep-research engines |
 | — (helper) | — | `session-signals.sh` | Emits deterministic working-tree facts for the finish assessment |
 
@@ -329,7 +331,7 @@ language, and starts the immediate next action.
 ### Skills
 
 A skill is a triggerable procedure: each `SKILL.md` carries a `description` that tells the agent
-**when** to invoke it. Skills speak in actions, not one runtime's tool names. The 18 skills are:
+**when** to invoke it. Skills speak in actions, not one runtime's tool names. The 19 skills are:
 
 **Session lifecycle** (user-only commands — the agent cannot invoke these)
 
@@ -337,6 +339,12 @@ A skill is a triggerable procedure: each `SKILL.md` carries a `description` that
 |---|---|---|
 | `/mavitalk:end-session` | You type it to end / wrap up a session and prepare the handoff | rigid |
 | `/mavitalk:start-session` | You type it to resume — restores the handoff and continues | rigid |
+
+**Project setup**
+
+| Skill | Trigger | Type |
+|---|---|---|
+| `configure` | Set up or repair the plugin for a project (scan → propose → confirm → write `.mavitalk/config.yml`) — offered by the session-start guard when no valid config exists, or invoke directly with `/mavitalk:configure` | rigid |
 
 **Documentation**
 
@@ -427,7 +435,9 @@ into a project the first time it closes a session there:
 
 **Per-project** (`.mavitalk/config.yml`): gate commands, conversation/artifact language, commit
 attribution, and the review pipeline (default tier, models per role, reviewer rosters, throttle
-cap). The session skills read this first, falling back to `CLAUDE.md` / stack autodetect.
+cap). The session skills read this first: gates resolve `config.yml gates:` → else the project's
+`AGENTS.md` canonical runner → else the gate is skipped with a loud warning; other settings fall
+back to the plugin's built-in defaults.
 
 ---
 
@@ -441,9 +451,10 @@ mavitalk-claude-plugin/
 │   ├── hooks/
 │   │   ├── inject-standards.sh         # SessionStart → inject the standards
 │   │   ├── mavitalk-standards.md       #   the standards document
+│   │   ├── session-config-guard.sh     # SessionStart → gate the lifecycle on a valid config
 │   │   ├── agent-throttle.sh           # PreToolUse → fan-out governor
 │   │   └── session-signals.sh          # helper: working-tree facts for finish
-│   ├── skills/                         # 18 skill directories (each a SKILL.md)
+│   ├── skills/                         # 19 skill directories (each a SKILL.md)
 │   ├── templates/mavitalk/             # scaffold for a project's .mavitalk/
 │   ├── tests/                          # shell test suite (run-tests.sh + lib.sh)
 │   └── docs/
@@ -473,6 +484,10 @@ It runs every `test-*.sh` and exits non-zero on any failure. Coverage:
 | `test-session-signals.sh` | working-tree facts: file/line counts, touched categories, activation hints, false-positive guards |
 | `test-plugin-manifest.sh` | manifest is valid JSON and wires the hooks correctly (no `UserPromptSubmit`; `SessionStart` only injects standards) |
 | `test-skill-invocation.sh` | the two session commands are user-only (`disable-model-invocation`); the 16 disciplines stay model-invocable |
+| `test-config-schema.sh` | the schema doc lists every recognized section and the deprecated key, defines both validation tiers, and stays in sync with the shipped template |
+| `test-session-config-guard.sh` | the guard's verdicts: missing / blocker / ok / advisory, attended vs. headless directives, and that an empty-string gate does not count as present |
+| `test-configure-skill.sh` | the `configure` skill stays model-invocable, documents scan → propose → confirm → write, and the doctor reference defines blockers/warnings |
+| `test-gate-resolution.sh` | gates resolve `config.yml gates:` → the `AGENTS.md` canonical runner → skip-with-warning, and the docs name that chain |
 
 After changes: `/plugin marketplace update mavitalk-claude-plugin` then `/reload-plugins`.
 

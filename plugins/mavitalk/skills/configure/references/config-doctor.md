@@ -14,9 +14,9 @@ it.
    `../../../docs/config-schema.md`: is it the right type (mapping vs. list vs. scalar), and are
    its keys ones the schema recognizes?
 3. Flag any key present in the file but absent from the schema as unknown/deprecated.
-4. Check whether at least one gate command is resolvable — from `config.yml` `gates:`, or
-   `AGENTS.md`, or stack autodetection — since an unresolvable gate means tests get silently
-   skipped later.
+4. Check whether at least one gate command is resolvable — from `config.yml` `gates:`, else the
+   `AGENTS.md` canonical runner, else the gate is skipped with a loud warning — flag it so the
+   developer knows before it happens silently.
 
 ## Classify
 
@@ -33,8 +33,8 @@ Structural problems that keep the session lifecycle asleep until fixed:
 
 Advisory problems, surfaced but non-blocking:
 
-- No gate command is resolvable anywhere (not in `config.yml`, not in `AGENTS.md`, not via stack
-  autodetection).
+- No gate command is resolvable anywhere (not in `config.yml`, not the `AGENTS.md` canonical
+  runner) — the gate is skipped with a loud warning.
 - A deprecated or unknown key is present — e.g. `max_review_agents` (retired; the throttle hard
   cap is the only agent budget now).
 - The file exists but carries only defaults — nothing project-specific has been set.

@@ -23,10 +23,10 @@ the config doctor validates a project's file against it. Any key not listed here
 
 | Key | Default | Required? | Meaning |
 |---|---|---|---|
-| `gates.test` | `""` (empty) | no (defaulted) | Command that runs the test suite; empty falls back to `AGENTS.md` / stack autodetection. |
-| `gates.lint` | `""` (empty) | no (defaulted) | Command that runs the linter; empty falls back to `AGENTS.md` / stack autodetection. |
-| `gates.types` | `""` (empty) | no (defaulted) | Command that runs the type checker; empty falls back to `AGENTS.md` / stack autodetection. |
-| `gates.format` | `""` (empty) | no (defaulted) | Command that runs the formatter; empty falls back to `AGENTS.md` / stack autodetection. |
+| `gates.test` | `""` (empty) | no (defaulted) | Command that runs the test suite; empty falls back to the `AGENTS.md` canonical runner, else the test is skipped with a loud warning. |
+| `gates.lint` | `""` (empty) | no (defaulted) | Command that runs the linter; empty falls back to the `AGENTS.md` canonical runner, else the check is skipped with a loud warning. |
+| `gates.types` | `""` (empty) | no (defaulted) | Command that runs the type checker; empty falls back to the `AGENTS.md` canonical runner, else the check is skipped with a loud warning. |
+| `gates.format` | `""` (empty) | no (defaulted) | Command that runs the formatter; empty falls back to the `AGENTS.md` canonical runner, else the check is skipped with a loud warning. |
 
 ### `review`
 
@@ -74,9 +74,10 @@ the config doctor validates a project's file against it. Any key not listed here
 ## Minimum to be considered configured
 
 A file counts as configured when it is well-formed YAML, contains at least one recognized
-top-level section, and has no structural corruption. No individual key is mandatory — every key
-defaults when absent, so an empty (but valid) file is technically configured, just uninformative
-(see the defaults-only warning below).
+top-level section, and has no structural corruption. A file with no recognized top-level section
+is a 🔴 blocker, not a configured file. No individual key within a recognized section is
+mandatory — every key defaults when absent, so a file whose sections carry only default values is
+still configured, just uninformative (see the defaults-only warning below).
 
 ## Validation tiers
 
@@ -93,8 +94,8 @@ Structural problems that keep the session-lifecycle cycle asleep until fixed:
 
 Advisory problems that are surfaced but do not block the cycle:
 
-- No gate command is resolvable anywhere — not in `config.yml`, not in `AGENTS.md`, not via stack
-  autodetection.
+- No gate command is resolvable anywhere — not in `config.yml`, not the `AGENTS.md` canonical
+  runner — so the gate is skipped with a loud warning.
 - A deprecated or unknown key is present, e.g. `max_review_agents` (retired; the throttle hard cap
   is the only agent budget now).
 - The file exists but carries only defaults — nothing project-specific has been set.

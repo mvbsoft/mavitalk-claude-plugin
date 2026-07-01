@@ -31,6 +31,10 @@ printf 'hello: world\n' > "$tmp/blocker/.mavitalk/config.yml"
 mkdir -p "$tmp/adv/.mavitalk"
 printf 'review:\n  max_review_agents: 3\ngates:\n  test: "echo ok"\n' > "$tmp/adv/.mavitalk/config.yml"
 
+# Fixture: empty-string gate (valid, but the only gate is an empty string; no AGENTS.md runner)
+mkdir -p "$tmp/emptygate/.mavitalk"
+printf 'gates:\n  test: ""\n' > "$tmp/emptygate/.mavitalk/config.yml"
+
 # missing + interactive → dormant + offers configure
 o="$(ctx "$tmp/missing" default)"
 printf '%s' "$o" | grep -qi 'dormant'   && a=yes || a=no; assert_eq "missing+interactive → dormant" "yes" "$a"
@@ -53,5 +57,16 @@ printf '%s' "$o" | grep -qi 'section'  && a=yes || a=no; assert_eq "blocker → 
 o="$(ctx "$tmp/adv" default)"
 printf '%s' "$o" | grep -qi 'max_review_agents' && a=yes || a=no; assert_eq "advisory → flags deprecated key" "yes" "$a"
 printf '%s' "$o" | grep -qi 'dormant'           && a=yes || a=no; assert_eq "advisory → does NOT go dormant" "no" "$a"
+
+# empty-string gate → treated as no gate at all: advisory fires, stays non-blocking
+o="$(ctx "$tmp/emptygate" default)"
+printf '%s' "$o" | grep -qi 'no gates' && a=yes || a=no; assert_eq "empty-string gate → 'no gates' advisory" "yes" "$a"
+printf '%s' "$o" | grep -qi 'dormant'  && a=yes || a=no; assert_eq "empty-string gate → does NOT go dormant" "no" "$a"
+
+# empty-string gate + headless → advisory still non-blocking, but no interactive call-to-action
+o="$(ctx_headless "$tmp/emptygate" default)"
+printf '%s' "$o" | grep -qi 'no gates'    && a=yes || a=no; assert_eq "empty-string gate + headless → 'no gates' advisory" "yes" "$a"
+printf '%s' "$o" | grep -qi 'dormant'     && a=yes || a=no; assert_eq "empty-string gate + headless → does NOT go dormant" "no" "$a"
+printf '%s' "$o" | grep -qi 'run /mavitalk:configure' && a=yes || a=no; assert_eq "empty-string gate + headless → no run-configure nudge" "no" "$a"
 
 finish_tests

@@ -29,7 +29,7 @@ else
   if [ "$state" = ok ]; then
     grep -qE '^[[:space:]]*max_review_agents:' "$cfg" 2>/dev/null \
       && adv="$adv deprecated key 'max_review_agents';"
-    if ! grep -qE '^[[:space:]]+(test|lint|types|format):[[:space:]]*[^[:space:]]' "$cfg" 2>/dev/null; then
+    if ! grep -qE "^[[:space:]]+(test|lint|types|format):[[:space:]]*[\"']?[^[:space:]\"']" "$cfg" 2>/dev/null; then
       if [ ! -f "$root/AGENTS.md" ] || ! grep -qiE 'gate|make gates|pytest|vitest|npm (run )?test' "$root/AGENTS.md" 2>/dev/null; then
         adv="$adv no gates found anywhere (tests will be skipped);"
       fi
@@ -41,7 +41,11 @@ emit() { printf '%s' "$1" | jq -Rs '{hookSpecificOutput:{hookEventName:"SessionS
 
 if [ "$state" = ok ]; then
   [ -z "$adv" ] && exit 0
-  emit "mavitalk config advisory (non-blocking):$adv Run /mavitalk:configure to review or fix. The session lifecycle still runs."
+  if [ "$present" -eq 1 ]; then
+    emit "mavitalk config advisory (non-blocking):$adv Run /mavitalk:configure to review or fix. The session lifecycle still runs."
+  else
+    emit "mavitalk config advisory (non-blocking):$adv The session lifecycle still runs."
+  fi
   exit 0
 fi
 

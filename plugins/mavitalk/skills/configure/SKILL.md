@@ -65,7 +65,9 @@ Once every setting is confirmed:
    `.mavitalk/memory/` — those are session-lifecycle state, not configuration, and this skill
    only owns `config.yml`.
 2. Write `.mavitalk/config.yml` with the confirmed values (omit keys left at their schema
-   default, to keep the file readable — the schema documents what's implied).
+   default, to keep the file readable — the schema documents what's implied). The written file
+   must always contain at least one recognized top-level section — never emit a section-less
+   file — so the session-start guard classifies it "ok" on the next session instead of a blocker.
 3. Summarize what was written: gates, language, attribution, and anything non-default.
 4. State plainly that the session lifecycle is now armed — gates and `end-session` will use this
    file from now on.
