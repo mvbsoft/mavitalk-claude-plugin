@@ -23,4 +23,9 @@ for s in understand-codebase architecture-review root-cause-analysis docker-firs
     "$(grep -Eq '^disable-model-invocation:' "$f" && echo no || echo yes)"
 done
 
+CFG="$DIR/../skills/configure/SKILL.md"
+assert_eq "configure declares name: configure" "name: configure" "$(grep -m1 '^name:' "$CFG" | tr -d '\r')"
+assert_eq "configure stays model-invocable (offered by the guard)" "ok" \
+  "$(grep -qE '^disable-model-invocation:[[:space:]]*true' "$CFG" && echo bad || echo ok)"
+
 finish_tests
