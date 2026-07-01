@@ -4,6 +4,12 @@ All notable changes to the **mavitalk** plugin are documented here. The format f
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Config lifecycle
+- Config lifecycle: session-start guard, `/mavitalk:configure` wizard + doctor, and
+  `config.yml → AGENTS.md → skip` gate resolution.
+
 ## [1.4.0] - 2026-06-24
 
 First published release — a project-agnostic Claude Code workflow layer shared across repositories and

@@ -27,6 +27,7 @@ serves every repo and every machine identically.
 - [What it does for you — a concrete walkthrough](#what-it-does-for-you--a-concrete-walkthrough)
 - [How it works — the three config layers](#how-it-works--the-three-config-layers)
 - [Install](#install)
+- [Configuring a project](#configuring-a-project)
 - [Components](#components)
   - [Hooks](#hooks)
   - [The injected standards](#the-injected-standards)
@@ -172,6 +173,17 @@ After editing the plugin: `/plugin marketplace update mavitalk-claude-plugin` th
 **Dependency:** the manifest declares a dependency on the `superpowers` plugin (from the
 `superpowers-dev` marketplace). Enabling mavitalk auto-installs and enables `superpowers` at the same
 scope.
+
+---
+
+## Configuring a project
+
+At session start a guard hook checks the current project for a valid `.mavitalk/config.yml`. If it
+is missing or broken, the agent offers `/mavitalk:configure` — a wizard that scans the repo,
+proposes gate commands and settings, and writes the file only after you confirm each one. Until a
+valid config exists, the **project-specific session lifecycle** (gates, tiered review,
+`/mavitalk:end-session`) stays **dormant** — the cross-project standards above still apply
+regardless.
 
 ---
 

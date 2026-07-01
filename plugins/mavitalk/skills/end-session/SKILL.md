@@ -3,8 +3,9 @@ name: end-session
 description: >
   End / wrap up the current coding session and prepare the handoff. Invoke explicitly with
   /mavitalk:end-session (you may append corrections, e.g. /mavitalk:end-session recheck the tests
-  before committing). Works in ANY project (Python / PHP / JavaScript) — it reads each project's
-  gates, language, and settings from .mavitalk/config.yml (falling back to CLAUDE.md / stack autodetect).
+  before committing). Works in ANY project (Python / PHP / JavaScript) — it reads gates from
+  config.yml gates: or the project's AGENTS.md canonical runner, and other settings from
+  .mavitalk/config.yml (falling back to stack autodetect).
 disable-model-invocation: true
 ---
 

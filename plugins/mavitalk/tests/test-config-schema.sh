@@ -26,4 +26,8 @@ for key in language attribution gates review throttle security project paths; do
   assert_eq "template still carries section '$key'" "yes" "$t"
 done
 
+INST="$DIR/../skills/end-session/references/installing-per-project.md"
+grep -q 'mavitalk:configure' "$INST" && h=yes || h=no
+assert_eq "install doc points at the configure wizard" "yes" "$h"
+
 finish_tests

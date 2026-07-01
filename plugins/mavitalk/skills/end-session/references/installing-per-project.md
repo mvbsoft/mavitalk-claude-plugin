@@ -4,9 +4,14 @@ This skill is the single source of the session-finishing procedure. Each project
 FACTS it needs, in `.mavitalk/config.yml` (scaffolded from the plugin templates).
 
 ## 1. Scaffold `.mavitalk/`
-On first finish in a project without `.mavitalk/`, copy `templates/mavitalk/` into the repo
-root as `.mavitalk/` (rename `gitignore` → `.gitignore`). Fill `config.yml` `gates:` with the
-project's commands (or leave blank for stack autodetection).
+On first finish in a project without a valid `.mavitalk/config.yml`, run `/mavitalk:configure`:
+it scans the repo, proposes settings (gate commands, language, review tiers), and writes
+`.mavitalk/config.yml` only after you confirm each one — no command is guessed and written
+silently.
+
+**Activation contract:** the session lifecycle (gates, tiered review, `end-session`) stays
+**DORMANT** until a valid `.mavitalk/config.yml` exists; the cross-project standards (injected at
+session start) apply regardless.
 
 ## 2. Auto-enable the plugin (optional)
 Commit to the project's `.claude/settings.json`:
