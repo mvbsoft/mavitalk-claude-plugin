@@ -26,7 +26,8 @@
       { "matcher": "Agent|Task|Workflow|Skill", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/agent-throttle.sh", "timeout": 5 } ] }
     ],
     "SessionStart": [
-      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-standards.sh", "timeout": 5 } ] }
+      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-standards.sh", "timeout": 5 } ] },
+      { "matcher": "startup|resume", "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-config-guard.sh", "timeout": 5 } ] }
     ]
   }
 }
