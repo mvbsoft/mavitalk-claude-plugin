@@ -5,7 +5,9 @@ unreliable — reviewers run as fresh-context subagents. See `references/tiers.m
 and `references/reviewer-prompts.md` for the exact prompts.
 
 ## Sequence
-1. **Deterministic gates (evidence required).** Run every gate from `config.yml`/CLAUDE.md/autodetect
+1. **Deterministic gates (evidence required).** Run every gate, resolved in order: `config.yml`
+   `gates:` → else the canonical runner documented in the project's `AGENTS.md` (e.g. `make gates`) →
+   else **skip tests and say so loudly** (record 'no gates resolvable; tests skipped').
    (test · lint · types · format · imports · coverage). In Full, run the deterministic security suite
    (`security.deterministic`, e.g. gitleaks/semgrep/npm audit) FIRST. Paste real numbers. Red on any
    gate → STOP, fix, re-run. Style/format/naming-convention/coverage are caught HERE, not by LLM

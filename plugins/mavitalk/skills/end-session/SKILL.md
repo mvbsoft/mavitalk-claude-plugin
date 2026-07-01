@@ -19,8 +19,10 @@ re-verify now; you do not grade your own exam. All `.mavitalk` artifacts are Eng
 the user's language. Announce: "Using mavitalk:end-session — assess, review, fix, commit, hand off."
 
 ## Phase 0 — Intent + tier proposal
-1. Read `.mavitalk/config.yml` (gates, language, attribution, review settings). If `.mavitalk/`
-   is missing, offer to scaffold it from the plugin `templates/mavitalk/`, then continue.
+1. Read `.mavitalk/config.yml` (gates, language, attribution, review settings). Gate commands
+   resolve `config.yml` `gates:` → else the `AGENTS.md` canonical runner → else skip tests with a
+   loud warning. If `.mavitalk/` is missing, offer to scaffold it from the plugin
+   `templates/mavitalk/`, then continue.
 2. Snapshot live state: `git status --short` · `git log --oneline -5` · branch.
 3. Run the assessment in `references/tiers.md` (signals incl. `activation_hints` → proposed
    Light/Medium/Full, or skip) and **propose a tier**. Ask with `AskUserQuestion`; the developer
