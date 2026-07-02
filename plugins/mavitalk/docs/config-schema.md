@@ -39,6 +39,11 @@ the config doctor validates a project's file against it. Any key not listed here
 | `review.judge_model` | `opus` | no (defaulted) | Model for the judge pass; pinned to Opus regardless of tier. |
 | `review.escalate_model` | `opus` | no (defaulted) | Model for the contested-finding adjudicator, and for a high-stakes `grounded_verifier` run. |
 | `review.full_reviewer_escalation` | `[correctness, architecture]` | no (defaulted) | Reviewers bumped from `reviewer_model` to Opus when the tier is Full. |
+| `review.effort.high` | see template | no (defaulted) | Focuses that run at `high` effort (dispatched via the `mavitalk-review-high` agent): the high-stakes lane. |
+| `review.effort.medium` | see template | no (defaulted) | Focuses that run at `medium` effort (dispatched via the `mavitalk-review-medium` agent): the routine lane. |
+| `review.effort.judge` | `high` | no (defaulted) | Effort for the Opus judge pass. |
+| `review.effort.adjudicator` | `xhigh` | no (defaulted) | Effort for the contested-finding Opus adjudicator (dispatched via `mavitalk-review-xhigh`). |
+| `review.effort.large_change_escalation` | `[correctness, architecture]` | no (defaulted) | Focuses bumped `high` → `xhigh` on a very large / complex Full change. Effort is pinned per role, never inherited from the session; `max` and reviewer-`low` are disallowed by policy. Retrieval runs on Haiku, which takes no effort parameter. |
 | `review.full_context` | `graph` | no (defaulted) | Context strategy for Full review: `graph`, or `wide-impact` as a fallback for huge repos. |
 | `review.confidence_floor` | `0.5` | no (defaulted) | Minimum confidence a finding needs to survive the soft-drop rule. |
 | `review.escalate_threshold` | `0.7` | no (defaulted) | Below this confidence, a Critical finding is sent to the Opus adjudicator. |
@@ -88,6 +93,8 @@ Structural problems that keep the session-lifecycle cycle asleep until fixed:
 - The file does not parse as YAML.
 - `gates` is present but is not a mapping.
 - A roster (`review.rosters.light`, `.medium`, or `.full`) is present but is not a list.
+- `review.effort` is present but is not a mapping, or `review.effort.high` / `.medium` /
+  `.large_change_escalation` is present but is not a list.
 - `throttle.hard_cap` is present but is not numeric.
 
 ### 🟡 Warning
@@ -105,5 +112,5 @@ Advisory problems that are surfaced but do not block the cycle:
 
 - **Auto (no prompt):** drop deprecated/dead keys (e.g. `max_review_agents`), correct `paths.root`,
   normalize formatting.
-- **Confirm-first:** any change to a behavior-affecting key — `gates`, any model key, any tier,
-  any roster, `review.activation.*`, `attribution.commit`.
+- **Confirm-first:** any change to a behavior-affecting key — `gates`, any model key, any effort
+  band (`review.effort.*`), any tier, any roster, `review.activation.*`, `attribution.commit`.

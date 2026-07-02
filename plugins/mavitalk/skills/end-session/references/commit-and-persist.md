@@ -13,6 +13,11 @@
 5. Never `git push` unless explicitly asked.
 6. Verify gitignored paths did not leak: `git ls-files .mavitalk/reviews .mavitalk/staging`
    must be empty.
+7. **Re-invocation marker (final action of the run).** Write `${paths.root}/.end-session-ran` =
+   `<current HEAD SHA> <ISO-8601 UTC timestamp>` (gitignored, local-only). Phase 0's guard reads it so
+   a second invocation on a byte-for-byte unchanged state asks before repeating. Because that guard
+   ALSO requires a clean working tree, a staged-but-uncommitted state (commit deferred, awaiting "ok")
+   still re-runs the full protocol next time — the marker never wrongly short-circuits real work.
 
 ## Persist (all tiers) — all files in English
 - **`.mavitalk/sessions/YYYY-MM-DD-NNN.md`** (append-only): what was built · files changed ·

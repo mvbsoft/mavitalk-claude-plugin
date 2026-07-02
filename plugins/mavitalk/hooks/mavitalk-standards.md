@@ -61,6 +61,13 @@ Three mechanisms keep important work off weak models:
 Pick the cheapest tier that meets the task. (deep-research, if ever enabled: sub-searches → Haiku,
 synthesis → Sonnet, final roll-up → Opus; a workflow step takes the model its role needs.)
 
+**Pin effort like you pin model.** The end-session review fixes reasoning effort per role in
+`.mavitalk/config.yml` (`review.effort`), never inheriting the session default (vendors have silently
+changed it before): `high` for the correctness/security lane, `medium` for routine focuses (≈ the prior
+generation's `high`, cheaper), `xhigh` only for contested adjudication and very large Full changes.
+Never `max` (a token trap) and never `low` for a reviewer. Effort is fixed by the FOCUS, not the tier —
+change size is absorbed by model/roster/context, not by effort.
+
 ## Agent & research safety (a token-leak safeguard, not a quality policy)
 The `agent-throttle` hook is a per-session backstop against runaway fan-out / token blow-ups; it does
 not police normal work. It does two things:
@@ -88,9 +95,10 @@ mechanism differs by `permission_mode`:**
 MODELS/types, and whether it NESTS. The hook is only the backstop — rendering the plan is your job.
 
 **Depth stays ONE level by default, by construction.** Research / review sub-agents must be read-only
-**`Explore`** — never `general-purpose` or any write-capable / agent-spawning type — so a leaf cannot
-spawn. A multi-level fan-out is OFF by default and needs explicit owner approval in an interactive
-session. Never automatic.
+and non-spawning — the built-in **`Explore`**, or the mavitalk end-session reviewer agents
+(`mavitalk-review-*`, shipped with no write / `Agent` / `Task` tool) — never `general-purpose` or any
+write-capable / agent-spawning type, so a leaf cannot spawn. A multi-level fan-out is OFF by default
+and needs explicit owner approval in an interactive session. Never automatic.
 
 Give every dispatched agent a concrete, bounded task with a stop condition. When the owner is away or
 says "continue", take a bounded step or wait — never start a mass sweep or an engine.

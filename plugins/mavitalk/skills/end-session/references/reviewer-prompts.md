@@ -1,11 +1,21 @@
 # Reviewer prompts (one per focus — keep them DIFFERENT)
 
-Dispatch as read-only `Explore` subagents, in parallel, each with a DIFFERENT focus. Model per role
-(`config.yml`): retrieval = Haiku, reviewers = Sonnet, Full bumps Correctness + Architecture to Opus,
-Judge = Opus at Medium+ (Light uses lightweight main-thread dedup). Give each reviewer the **diff +
-the stated session scope + the curated context from the
-impact-map (Stage 2), NOT the chat history**. Prepend the reviewer's `does_not_review` line (see the
-Blind-spots matrix) so each stays in its lane.
+Dispatch each reviewer through the plugin's read-only reviewer agent whose baked-in `effort:` matches
+its focus (overriding only the model), in parallel, each with a DIFFERENT focus. Effort/model per role
+lives in `config.yml` (`review.effort`, `*_model`) and is spelled out in `tiers.md`:
+- **high lane** → agent `mavitalk-review-high`: correctness, security, architecture,
+  data_flow_contracts, business_logic, grounded_verifier, requirement_auditor, and the Judge (on Opus).
+- **medium lane** → agent `mavitalk-review-medium`: quality_docs, test_adequacy, maintainability,
+  production_readiness.
+- **xhigh** → agent `mavitalk-review-xhigh`: the contested-finding adjudicator, and correctness +
+  architecture when a very large / complex Full change triggers `large_change_escalation`.
+- retrieval / impact-map → `Explore` on Haiku (no effort parameter).
+
+Model per role (`config.yml`): retrieval = Haiku, reviewers = Sonnet, Full bumps Correctness +
+Architecture to Opus, Judge = Opus at Medium+ (Light uses lightweight main-thread dedup). Give each
+reviewer the **diff + the stated session scope + the curated context from the impact-map (Stage 2),
+NOT the chat history**. Prepend the reviewer's `does_not_review` line (see the Blind-spots matrix) so
+each stays in its lane.
 
 Which reviewers run is set by the tier roster + conditional activation (`references/tiers.md`).
 

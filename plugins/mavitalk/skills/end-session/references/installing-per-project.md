@@ -44,7 +44,7 @@ not with `~/.claude/`. Note: hooks fire inside sub-agents and the throttle count
 tree under one `session_id` (verified), so Agent/Task dispatch is metered tree-wide. Mass-fan-out
 engines (Workflow, deep-research) are the exception — their internal agents bypass the hook, so they
 are gated (ask interactive / deny autonomous), not counted. Review/research fan-out also stays flat by
-construction (read-only `Explore` subagents cannot spawn).
+construction (read-only leaves — `Explore` or the `mavitalk-review-*` reviewer agents — cannot spawn).
 
 If a project wants a hard backstop **independent of the plugin** (e.g. for contributors who haven't
 enabled it), commit a project-level PreToolUse hook in `.claude/settings.json` pointing at a repo-local

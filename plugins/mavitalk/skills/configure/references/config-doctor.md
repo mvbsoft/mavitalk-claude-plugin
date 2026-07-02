@@ -27,6 +27,8 @@ Structural problems that keep the session lifecycle asleep until fixed:
 - The file does not parse as YAML.
 - `gates` is present but is not a mapping.
 - A roster (`review.rosters.light`, `.medium`, or `.full`) is present but is not a list.
+- `review.effort` is present but is not a mapping, or `review.effort.high` / `.medium` /
+  `.large_change_escalation` is present but is not a list.
 - `throttle.hard_cap` is present but is not numeric.
 
 ### 🟡 Warning
@@ -45,8 +47,8 @@ Advisory problems, surfaced but non-blocking:
 - **Auto (no prompt):** drop deprecated/dead keys (e.g. `max_review_agents`), correct
   `paths.root` to match where state actually lives, normalize formatting. These changes cannot
   alter runtime behavior, so they don't need confirmation.
-- **Confirm first:** any change to a behavior-affecting key — `gates`, any model key, any tier,
-  any roster, `review.activation.*`, `attribution.commit`. When unsure whether a fix is purely
+- **Confirm first:** any change to a behavior-affecting key — `gates`, any model key, any effort
+  band (`review.effort.*`), any tier, any roster, `review.activation.*`, `attribution.commit`. When unsure whether a fix is purely
   cosmetic or actually changes behavior, treat it as behavior-affecting and ask. Never silently
   rewrite behavior.
 

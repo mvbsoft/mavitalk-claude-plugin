@@ -30,4 +30,10 @@ INST="$DIR/../skills/end-session/references/installing-per-project.md"
 grep -q 'mavitalk:configure' "$INST" && h=yes || h=no
 assert_eq "install doc points at the configure wizard" "yes" "$h"
 
+# The effort policy must be documented in the schema and carried by the template.
+grep -q 'review.effort' "$DOC" && he=yes || he=no
+assert_eq "schema documents review.effort" "yes" "$he"
+grep -qE '^[[:space:]]*effort:' "$TPL" && te=yes || te=no
+assert_eq "template carries review.effort" "yes" "$te"
+
 finish_tests

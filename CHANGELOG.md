@@ -6,6 +6,29 @@ All notable changes to the **mavitalk** plugin are documented here. The format f
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-02
+
+The review-effort release — the end-session review now pins reasoning **effort** per role alongside the
+model, and every `/mavitalk:end-session` invocation runs its full protocol from scratch.
+
+### Per-role reasoning effort
+- **`review.effort` config.** Effort is pinned per focus and never inherited from the session default:
+  `high` for the correctness/security lane, `medium` for routine focuses (≈ the prior generation's
+  `high`, cheaper), `xhigh` for contested adjudication and very large Full changes. Never `max` (a
+  token trap) and never `low` for a reviewer. Effort follows the FOCUS, not the tier — change size is
+  absorbed by model / roster / context.
+- **Three read-only reviewer agents.** `mavitalk-review-medium` / `-high` / `-xhigh` carry the pinned
+  effort in their frontmatter and ship with no write/spawn tool, so the review wave stays flat by
+  construction; the model is chosen per dispatch.
+- Wired across `tiers.md`, `reviewer-prompts.md`, the config schema, and the config doctor; the
+  injected standards now carry a "pin effort like you pin model" rule.
+
+### end-session always runs in full
+- Every invocation runs the full verify → hand-off → commit protocol from scratch — earlier in-session
+  checks never satisfy or shorten it. The sole short-circuit is a Phase 0 re-invocation guard: on a
+  byte-for-byte unchanged state it asks before repeating, backed by a local, gitignored
+  `.end-session-ran` marker.
+
 ## [1.5.0] - 2026-07-02
 
 The config-lifecycle release — a project opts into the shared layer through a validated

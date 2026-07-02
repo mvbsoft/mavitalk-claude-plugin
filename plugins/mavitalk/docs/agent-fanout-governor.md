@@ -115,7 +115,8 @@ inert in headless, so the discriminator must be correct, not best-effort.
   2026-06-24: a nested sub-agent shares the parent's `session_id`, so the cap counts the whole tree).
   **Engines are the exception** — their internal agents are spawned by the engine runtime, not the
   Agent tool, so they never reach this hook and cannot be counted; that is why engines are gated, not
-  metered. Depth still stays one level by construction (read-only `Explore` leaves cannot spawn).
+  metered. Depth still stays one level by construction (read-only leaves — `Explore` or the
+  `mavitalk-review-*` reviewer agents — cannot spawn).
 
 ## Rollout (done)
 

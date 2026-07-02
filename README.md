@@ -229,8 +229,8 @@ It has four sections:
   / deny (autonomous). The mass-fan-out engines (Workflow, `deep-research`) spawn agents outside the
   hook, so the cap can't meter them — they are gated on their own: ask interactive / deny autonomous.
   Before any over-cap or engine fan-out the agent states what/why/how-many/which-models/whether-nests.
-  Depth stays one level by construction (read-only `Explore` leaves); multi-level needs explicit owner
-  approval. Every dispatched agent gets a bounded task with a stop condition.
+  Depth stays one level by construction (read-only `Explore` / `mavitalk-review-*` leaves); multi-level
+  needs explicit owner approval. Every dispatched agent gets a bounded task with a stop condition.
 - **Authorship hygiene** — everything written into a repo reads as ordinary human engineering work:
   no AI/tool authorship fingerprints, and no ticket/plan/step codes in code or docs (process
   metadata belongs in the PR or issue tracker).
@@ -281,7 +281,8 @@ Environment overrides (set at launch):
 Verified live (2026-06-24): a nested **Agent-tool** sub-agent shares the parent's session id, so the
 cap counts the whole tree; but a **Workflow** engine spawns its agents outside the hook, so the cap
 cannot meter an engine — which is why engines are gated rather than counted. Depth stays one level by
-construction (read-only `Explore` leaves cannot spawn). Full design:
+construction (read-only leaves — built-in `Explore` or the plugin's `mavitalk-review-*` reviewer
+agents — cannot spawn). Full design:
 [`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md).
 
 ### The session pipeline
@@ -419,7 +420,9 @@ into a project the first time it closes a session there:
 - `config.yml` — the project's workflow configuration: artifact language, conversation language
   (auto-detect), commit attribution (`none`), gate commands, review settings (default tier, reviewer
   model `sonnet`, retrieval `haiku`, judge `opus`, per-tier reviewer rosters, conditional reviewers,
-  throttle cap 20), security tools, and paths.
+  per-role reasoning effort (`review.effort`: high for the correctness/security lane, medium for
+  routine focuses, xhigh for contested adjudication — pinned, never inherited), throttle cap 20),
+  security tools, and paths.
 - `next-session.md` — the handoff template (status, branch, `last_verified_sha`, current state, done,
   not done, known issues, architecture snapshot, dead ends, immediate next action).
 - `memory/project-memory.md` — the persistent memory template (identity, stack, architecture,

@@ -57,8 +57,16 @@ Reviewers correctness, architecture, security, quality_docs, test_adequacy (plus
 Full, folded into architecture at Medium) are "always" within their tier. A pure internal-helper
 refactor thus spins up none of the conditional reviewers.
 
-## Model per role (`config.yml` — the single source of truth for model selection)
-- retrieval (impact-map / extraction) → **Haiku** (`retrieval_model`).
+## Model & effort per role (`config.yml` — the single source of truth)
+**Model** (`*_model` keys) and **effort** (`review.effort`) are both pinned per role and **never
+inherited from the session default** — Anthropic has silently changed the interactive default effort
+before, which broke pipelines that relied on it. Model is passed per dispatch; effort rides the
+read-only reviewer agent you dispatch (its `effort:` is fixed in the plugin's `agents/` definitions,
+and the caller overrides only the model).
+
+**Model per role:**
+- retrieval (impact-map / extraction) → **Haiku** (`retrieval_model`), dispatched as `Explore` (Haiku
+  takes no effort parameter).
 - base reviewers, auditor → **Sonnet** (`reviewer_model`).
 - Full: correctness + architecture → **Opus** (`full_reviewer_escalation`).
 - **architecture_decision** activated → the architecture reviewer runs on **Opus** (`escalate_model`).
@@ -68,11 +76,30 @@ refactor thus spins up none of the conditional reviewers.
 - Judge + contested-finding adjudicator → **Opus** (`judge_model` / `escalate_model`), always at
   Medium and Full (Light uses lightweight main-thread dedup).
 
+**Effort per role — fixed by FOCUS, not by tier.** (A small change costs little even at high — there
+is barely anything to reason about; a big change wants high regardless. So change size is absorbed by
+the model / roster / context, NOT by effort.) Dispatch each reviewer through the read-only agent whose
+`effort:` is baked in, overriding only the model:
+- **high lane** (`review.effort.high` → agent `mavitalk-review-high`): correctness, security,
+  architecture, data_flow_contracts, business_logic, grounded_verifier, requirement_auditor. The
+  correctness/security floor — effort never drops below high here.
+- **medium lane** (`review.effort.medium` → agent `mavitalk-review-medium`): quality_docs,
+  test_adequacy, maintainability, production_readiness. Medium ≈ the previous generation's high in
+  quality but cheaper — the economy setting for routine focuses.
+- **judge** → high (`review.effort.judge`; agent `mavitalk-review-high` on Opus).
+- **adjudicator** → xhigh (`review.effort.adjudicator`; agent `mavitalk-review-xhigh` on Opus).
+- **large-change escalation** (`review.effort.large_change_escalation`): on a very large / complex Full
+  change, correctness + architecture bump high → xhigh (agent `mavitalk-review-xhigh` on Opus).
+- Never `max` (a token trap: ~2.7× tokens for ~3 pp quality) and never `low` for a reviewer (a Sonnet
+  reviewer on `low` limits itself to the literal request and misses bugs). Retrieval on Haiku is the
+  only effort-free role.
+
 ## Agent budget
 The hard backstop is the plugin's `agent-throttle.sh` hook: CAP 20 (`throttle.hard_cap`) launches per
 5-min window, per session. Stay well under it — a Full wave peaks at ≈6–9 agents (impact-map + base
 reviewers + activated conditionals + auditor); the post-fix re-review is sequenced into the next
-window. Reviewers and the impact-map producer are read-only `Explore` subagents: they have no Agent
-tool, so they cannot spawn further agents — the review wave is flat by construction. The throttle
-counts the whole nested tree under one `session_id` (verified), so even a nested wave is bounded by
-the cap; the flat-by-construction `Explore` design keeps it well under the cap regardless.
+window. Reviewers run through the plugin's read-only reviewer agents (`mavitalk-review-medium` /
+`-high` / `-xhigh`) and the impact-map producer runs as read-only `Explore`: none of them carry the
+Agent/Task tool, so they cannot spawn further agents — the review wave is flat by construction. The
+throttle counts the whole nested tree under one `session_id` (verified), so even a nested wave is
+bounded by the cap; the flat-by-construction design keeps it well under the cap regardless.

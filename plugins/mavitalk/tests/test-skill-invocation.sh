@@ -28,4 +28,18 @@ assert_eq "configure declares name: configure" "name: configure" "$(grep -m1 '^n
 assert_eq "configure stays model-invocable (offered by the guard)" "ok" \
   "$(grep -qE '^disable-model-invocation:[[:space:]]*true' "$CFG" && echo bad || echo ok)"
 
+# end-session must ALWAYS run in full on invocation, with the sole short-circuit being the
+# byte-for-byte-unchanged re-invocation guard (marker + clean-tree). Verify the contract is wired.
+ES="$SK/end-session/SKILL.md"
+assert_eq "end-session states it runs the full protocol from scratch" "yes" \
+  "$(grep -qiE 'full protocol from scratch' "$ES" && echo yes || echo no)"
+assert_eq "end-session documents the re-invocation marker" "yes" \
+  "$(grep -q '.end-session-ran' "$ES" && echo yes || echo no)"
+PERSIST="$SK/end-session/references/commit-and-persist.md"
+assert_eq "persist doc writes the re-invocation marker" "yes" \
+  "$(grep -q '.end-session-ran' "$PERSIST" && echo yes || echo no)"
+IGN="$DIR/../templates/mavitalk/gitignore"
+assert_eq "gitignore template ignores the marker" "yes" \
+  "$(grep -q '.end-session-ran' "$IGN" && echo yes || echo no)"
+
 finish_tests

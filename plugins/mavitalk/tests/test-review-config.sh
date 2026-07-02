@@ -55,4 +55,41 @@ done
 assert_eq "no standalone Sweep section" "yes" \
   "$(grep -q '^## Sweep' "$PROMPTS" && echo no || echo yes)"
 
+# --- Effort policy: every roster reviewer must have an explicit, pinned effort band ---
+assert_eq "review.effort block present" "yes" \
+  "$(grep -Eq '^[[:space:]]*effort:' "$CFG" && echo yes || echo no)"
+
+# Extract focuses named in the effort high/medium lists (the effort block sits between
+# 'effort:' and the next review key 'full_context:').
+effort_names="$(awk '/^[[:space:]]*effort:/{f=1;next} /^[[:space:]]*full_context:/{f=0} f' "$CFG" \
+  | grep -E '^[[:space:]]*(high|medium):' \
+  | sed -E 's/^[[:space:]]*(high|medium):[[:space:]]*//; s/[][,]/ /g' \
+  | tr ' ' '\n' | grep -E '^[a-z_]+$' | sort -u)"
+
+for r in $names; do
+  assert_eq "roster reviewer '$r' has an explicit effort band" "yes" \
+    "$(printf '%s\n' "$effort_names" | grep -qx "$r" && echo yes || echo no)"
+done
+
+assert_eq "judge effort pinned" "yes" \
+  "$(grep -Eq '^[[:space:]]*judge:[[:space:]]*(low|medium|high|xhigh)\b' "$CFG" && echo yes || echo no)"
+assert_eq "adjudicator effort pinned" "yes" \
+  "$(grep -Eq '^[[:space:]]*adjudicator:[[:space:]]*(low|medium|high|xhigh)\b' "$CFG" && echo yes || echo no)"
+
+# Policy floor: no effort VALUE may be max (strip inline comments first, which legitimately mention it).
+assert_eq "no max effort value in policy" "yes" \
+  "$(awk '/^[[:space:]]*effort:/{f=1;next} /^[[:space:]]*full_context:/{f=0} f' "$CFG" | sed 's/#.*//' | grep -qw 'max' && echo no || echo yes)"
+
+# --- The read-only effort-band reviewer agents must exist and stay read-only / non-spawning ---
+AGENTS_DIR="$DIR/../agents"
+for lvl in medium high xhigh; do
+  af="$AGENTS_DIR/mavitalk-review-$lvl.md"
+  assert_eq "agent mavitalk-review-$lvl exists" "yes" \
+    "$([ -f "$af" ] && echo yes || echo no)"
+  assert_eq "agent mavitalk-review-$lvl pins effort: $lvl" "yes" \
+    "$(grep -Eq "^effort:[[:space:]]*$lvl\b" "$af" 2>/dev/null && echo yes || echo no)"
+  assert_eq "agent mavitalk-review-$lvl grants no write/spawn tool" "yes" \
+    "$(grep -E '^tools:' "$af" 2>/dev/null | grep -Eq '\b(Write|Edit|NotebookEdit|Task|Agent)\b' && echo no || echo yes)"
+done
+
 finish_tests

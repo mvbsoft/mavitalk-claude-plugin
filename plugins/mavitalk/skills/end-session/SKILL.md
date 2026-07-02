@@ -19,7 +19,21 @@ Never close a session blind. Finish only after: **VERIFY** (tiered, evidence-bas
 re-verify now; you do not grade your own exam. All `.mavitalk` artifacts are English; converse in
 the user's language. Announce: "Using mavitalk:end-session — assess, review, fix, commit, hand off."
 
+**Every invocation runs the full protocol from scratch.** Earlier in-session work — tests you already
+ran, an ad-hoc review, a partial check — NEVER satisfies or shortens this command; it always builds its
+own fresh verification. The only short-circuit is the Phase 0 re-invocation guard (a repeat on a
+byte-for-byte unchanged state, which asks before repeating). If you catch yourself trimming a phase
+because "that already ran", stop — that is the exact failure this command exists to prevent.
+
 ## Phase 0 — Intent + tier proposal
+0. **Re-invocation guard (the ONLY reason to not run in full).** Read `${paths.root}/.end-session-ran`
+   (a local, gitignored marker). If it exists AND its SHA equals the current `git rev-parse HEAD` AND
+   the working tree is clean (`git status --porcelain` is empty), this invocation would re-verify a
+   byte-for-byte unchanged state — ask with `AskUserQuestion`: "end-session already completed on this
+   exact state (`<sha>`) and nothing has changed since — run the full protocol again?" On **yes** →
+   proceed through every phase. On **no** → stop and report "already verified at `<sha>`; nothing
+   changed since." In every OTHER case — no marker, HEAD moved, or the tree is dirty — say nothing and
+   run the full protocol. (Headless / no one to ask → run the full protocol; never self-skip.)
 1. Read `.mavitalk/config.yml` (gates, language, attribution, review settings). Gate commands
    resolve `config.yml` `gates:` → else the `AGENTS.md` canonical runner → else skip tests with a
    loud warning. If `.mavitalk/` is missing, offer to scaffold it from the plugin
@@ -36,9 +50,11 @@ traceability (isolated auditor) → tiered review of the activated reviewers (`r
 `references/reviewer-prompts.md`, each with its blind-spots line) → aggregate (Opus Judge: refute-first,
 soft-drop, escalate contested Criticals/conflicts to an Opus adjudicator, genuine conflicts to you) →
 fix Critical/Important via TDD → re-run gates (last green post-dates last edit; Full re-reviews changed
-files). The Judge runs on Opus at Medium/Full; Light uses lightweight main-thread dedup. Reviewers are
-read-only `Explore` subagents (flat by construction); the plugin's agent-throttle hook (CAP 20) is the
-hard backstop.
+files). The Judge runs on Opus at Medium/Full; Light uses lightweight main-thread dedup. Model and
+effort are pinned per role (`config.yml` `*_model` / `review.effort`, detailed in `references/tiers.md`),
+never inherited from the session default. Reviewers run through the plugin's read-only reviewer agents
+(`mavitalk-review-medium`/`-high`/`-xhigh`, effort baked in; impact-map on `Explore`) — flat by
+construction; the plugin's agent-throttle hook (CAP 20) is the hard backstop.
 
 ## Phase 2 — HAND OFF
 Persist per `references/commit-and-persist.md`: session log, project-memory (Active context only),
@@ -60,6 +76,7 @@ found & fixed) · committed SHA or "staged, awaiting ok" · which `.mavitalk` fi
 | Excuse | Reality |
 |--------|---------|
 | "The audit already ran earlier this session" | Re-trace now. Earlier ≠ final state; later edits may have broken it. |
+| "Some reviews/tests already ran this session, so I can skip or shorten end-session" | No. Every invocation runs the full protocol from scratch with its own fresh verification; earlier ad-hoc checks never substitute for it. The ONLY short-circuit is the Phase 0 guard on a byte-for-byte unchanged state. |
 | "I trust the status file says the gates passed" | Re-run the gates. Show today's output. State files describe the past. |
 | "Requirement traceability isn't really needed" | It's the #1 way incomplete work ships. Enumerate every item, cite evidence. |
 | "The handoff was maintained incrementally, it's current" | Read it as a cold agent. Verify the SHA + numbers match HEAD now. |
@@ -85,6 +102,7 @@ all three phases are done with evidence.
 - Committing without re-running the gates this turn (the last gate run must be after the last edit)
 - Saying "done" without tracing every discussed item to evidence
 - Skipping independent review because "it looks done" — or self-classifying a substantial session as "trivial"
+- Trimming or skipping any phase because checks "already ran" earlier this session (only the Phase 0 guard, on a byte-for-byte unchanged state, may short-circuit)
 - Reporting a review verdict without showing the focus prompts and each agent's actual findings
 - Committing over a red gate because it's "pre-existing / unrelated / flaky"
 - Treating owner silence as a yes for a write (commit/push)

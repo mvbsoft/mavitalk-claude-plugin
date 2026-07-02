@@ -33,4 +33,5 @@ and `references/reviewer-prompts.md` for the exact prompts.
 
 Respect the agent budget: the plugin's `agent-throttle.sh` hook caps dispatch at `throttle.hard_cap`
 (20) per 5-min window. A Full wave peaks at ≈6–9 agents; sequence the post-fix re-review into the next
-window. Reviewers are read-only `Explore` subagents (no Agent tool → flat by construction).
+window. Reviewers run through the plugin's read-only reviewer agents (`mavitalk-review-medium` /
+`-high` / `-xhigh`; impact-map on `Explore`) — none carry the Agent/Task tool → flat by construction.

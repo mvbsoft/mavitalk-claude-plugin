@@ -17,6 +17,13 @@ review:
   judge_model: opus              # always Opus (pinned)
   escalate_model: opus           # contested-finding adjudicator; also high-stakes grounded_verifier
   full_reviewer_escalation: [correctness, architecture]  # bumped to Opus in Full
+  effort:                        # reasoning effort per role — pinned, never inherited from the session default
+    high:   [correctness, security, architecture, data_flow_contracts, business_logic, grounded_verifier, requirement_auditor]
+    medium: [quality_docs, test_adequacy, maintainability, production_readiness]
+    judge: high                  # Opus judge
+    adjudicator: xhigh           # contested-finding Opus adjudicator
+    large_change_escalation: [correctness, architecture]  # high → xhigh on a very large / complex Full change
+    # impact-map / retrieval runs on Haiku, which takes no effort parameter; never use max (token trap) or low for a reviewer
   full_context: graph            # graph | wide-impact (fallback for huge repos)
   confidence_floor: 0.5          # part of the soft-drop rule
   escalate_threshold: 0.7        # Critical below this → Opus adjudicator
