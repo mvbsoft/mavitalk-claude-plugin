@@ -6,9 +6,26 @@ All notable changes to the **mavitalk** plugin are documented here. The format f
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-02
+
+The config-lifecycle release — a project opts into the shared layer through a validated
+`.mavitalk/config.yml`, with a session-start guard, an interactive setup wizard, and a clear
+gate-resolution order.
+
 ### Config lifecycle
-- Config lifecycle: session-start guard, `/mavitalk:configure` wizard + doctor, and
-  `config.yml → AGENTS.md → skip` gate resolution.
+- **Activation guard.** A second `SessionStart` hook (`session-config-guard.sh`) gates the lifecycle
+  on a valid project config, so the shared layer engages only when the project opts in correctly.
+- **`/mavitalk:configure` wizard + doctor.** An interactive command that scaffolds and validates a
+  project's `.mavitalk/config.yml`, backed by a `config-doctor` reference for diagnosing a broken config.
+- **Gate resolution `config.yml → AGENTS.md → skip`.** `/mavitalk:end-session` resolves its
+  verification gates from `.mavitalk/config.yml`, falls back to `AGENTS.md`, and skips with a warning
+  when neither defines them.
+- **Canonical schema + design spec.** A `config-schema` reference documents every field and its
+  validation tier; a `config-lifecycle` design spec records how the pieces fit together.
+
+### Docs & tooling
+- README inventory refreshed (both `SessionStart` hooks, `test-review-config.sh`), the no-gates
+  advisory tightened, and the configure wizard + activation contract documented.
 
 ## [1.4.0] - 2026-06-24
 
