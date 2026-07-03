@@ -3,7 +3,9 @@ name: configure
 description: >
   Set up or repair the mavitalk plugin for THIS project — scans the repo, proposes a
   .mavitalk/config.yml, explains each setting, writes it after you confirm. Also repairs an
-  invalid config. Offered automatically by the session-start guard when no valid config exists.
+  invalid config, offers the once-per-machine cost profile (model opusplan + pinned effort in
+  ~/.claude/settings.json), and can scope plugin skills per project. Offered automatically by the
+  session-start guard when no valid config exists.
 ---
 
 # Configure
@@ -71,6 +73,34 @@ Once every setting is confirmed:
 3. Summarize what was written: gates, language, attribution, and anything non-default.
 4. State plainly that the session lifecycle is now armed — gates and `end-session` will use this
    file from now on.
+
+## Machine profile (once per computer, confirm first)
+
+The plugin cannot set the main session's model or effort itself — those live in the user-level
+`~/.claude/settings.json`. So after the project config is settled (or when invoked on a machine
+that has never been set up), check that file and, if it differs, **offer** the recommended cost
+profile:
+
+```json
+{ "model": "opusplan", "effortLevel": "high" }
+```
+
+Explain it in one plain sentence — Opus does the thinking in Plan Mode, Sonnet does the typing
+everywhere else, and pinning effort protects against silent vendor default changes — then write it
+only on explicit confirmation. Flag (never silently change) anything expensive already set there:
+a `fable`/`opus` default, a `[1m]` window, `xhigh`/`max` effort, or a global
+`CLAUDE_CODE_SUBAGENT_MODEL` (that env override silently demotes the end-session Opus judge — see
+`../../docs/model-routing.md`). If the user declines, the session-start guard will still show a
+non-blocking cost advisory each time a session launches on an expensive profile.
+
+## Per-project skill scoping (optional, confirm first)
+
+Every installed skill's name+description sits in context in every project. When the scan shows the
+stack clearly (e.g. a TypeScript-only frontend), propose disabling the plugin's irrelevant stack
+skills for this project via `skillOverrides` in the project's `.claude/settings.json` (e.g.
+`postgres-best-practices`, `python-conventions`, `migration-safety` in a pure frontend repo).
+Propose only clear mismatches, list them explicitly, and write only on confirmation — a wrongly
+disabled skill is silent, so err toward keeping.
 
 ## Repair path
 

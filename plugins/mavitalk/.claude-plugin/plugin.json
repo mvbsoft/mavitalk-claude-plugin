@@ -1,13 +1,10 @@
 {
-  "dependencies": [
-    { "name": "superpowers", "marketplace": "superpowers-dev" }
-  ],
   "mcpServers": {
     "context7": { "type": "http", "url": "https://mcp.context7.com/mcp" }
   },
-  "version": "1.6.0",
+  "version": "2.0.0",
   "name": "mavitalk",
-  "description": "Project-agnostic Claude Code workflow layer: ships shared discipline skills plus user-only session commands (start-session, end-session), injects the cross-project standards (how we work) at session start, and governs sub-agent fan-out (agent throttle).",
+  "description": "Project-agnostic Claude Code workflow & cost layer: user-only session commands (start-session, end-session) around a persisted handoff, shared discipline skills, cross-project standards injected at session start, a cost-routing profile (opusplan + pinned effort), and a sub-agent fan-out governor (agent throttle).",
   "author": {
     "name": "malina"
   },

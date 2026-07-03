@@ -6,6 +6,57 @@ All notable changes to the **mavitalk** plugin are documented here. The format f
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-03
+
+The cost-layer release — the plugin now governs *how the daily session spends tokens*, not just how
+it ends, and becomes self-sufficient (the superpowers dependency is gone).
+
+### Session cost layer
+- **Machine profile.** `configure` gains a once-per-computer step that offers to write
+  `model: opusplan` + `effortLevel: high` into `~/.claude/settings.json` (confirm-first): Opus does
+  the thinking in Plan Mode, Sonnet does the typing everywhere else — sub-agents inherit Sonnet on
+  execution automatically. It also flags expensive leftovers (`fable`/`opus` defaults, `[1m]`
+  windows, `xhigh`/`max` effort, a global `CLAUDE_CODE_SUBAGENT_MODEL`).
+- **Cost advisory.** `session-config-guard.sh` now reads the session's model (and `CLAUDE_EFFORT`)
+  and emits a non-blocking advisory when an attended session launches on a premium model, a `[1m]`
+  window, or `xhigh`/`max` effort — silent on the recommended profile and in headless runs.
+- **Session & token economy standards.** The injected standards gain an economy section:
+  narrow-before-reading, the local-first research ladder (repo → `.mavitalk` notes → context7 →
+  Internet last) with findings persisted so no session repeats another's research, sub-agents only
+  when they earn their spawn, short sessions over long ones.
+- **`docs/model-routing.md`.** The full model table, floors, escalation cascade, and throttle
+  mechanics moved out of the injected standards into an on-demand detail file (the injector now
+  substitutes a plugin-root placeholder so the pointer resolves) — the always-on injection got
+  leaner while the detail stayed authoritative. Includes the verified warning that a global
+  `CLAUDE_CODE_SUBAGENT_MODEL` overrides even explicit per-dispatch models (it would silently
+  demote the Opus judge — never set it).
+- **Corrected Plan Mode mechanics.** The standards no longer claim `ExitPlanMode` restores the
+  prior permission mode — the owner picks the next mode in the approval dialog; every non-plan
+  choice resolves `opusplan` to Sonnet, which is the intended routing.
+
+### start-session v2
+- **Explicit context skips the lookup.** `/mavitalk:start-session <context>` starts on that task
+  directly — no handoff/memory search.
+- **Bare invocation resolves the task** through a defined chain: `next-session.md` → project
+  memory / newest session log → repo planning files → else it proposes 2–3 candidate tasks and asks.
+- **Built-in triage.** The command itself decides plan-vs-direct: simple and fully clear → name the
+  files, one short confirmation, no Plan Mode; complex / architectural / unclear scope → Plan Mode
+  (where `opusplan` brings in Opus), local-first research, challenge the owner's assumptions, wait
+  for approval. The anti-drift SHA check stays mandatory.
+
+### Self-sufficiency
+- **superpowers dependency removed** from the manifest. Running both meant paying twice for the
+  same guarantees (per-task review + end-session review on the same diff; a brainstorming hard-gate
+  blocking Plan Mode; duplicated TDD/verification discipline) plus ~2k tokens of standing injection.
+  The plugins can still coexist, but the recommendation is to disable superpowers where mavitalk runs.
+
+### Calibration
+- Trivial sessions now default to **skipping the end-session review** (gates still run; persist +
+  report only), with Light as the offered alternative.
+- `docs/cost-efficient-coding-plan.md` gained a verification-corrections section (the stale ~5×
+  Opus/Sonnet multiplier, the retracted `CLAUDE_CODE_SUBAGENT_MODEL` advice, the corrected
+  `ExitPlanMode` semantics, and the record that the machine profile was applied on 2026-07-03).
+
 ## [1.6.0] - 2026-07-02
 
 The review-effort release — the end-session review now pins reasoning **effort** per role alongside the

@@ -21,4 +21,6 @@ assert_eq "PreToolUse hook type is command" "command" \
   "$(jq -r '.hooks.PreToolUse[0].hooks[0].type' "$M")"
 assert_eq "uses CLAUDE_PLUGIN_ROOT for hook paths" "ok" \
   "$(grep -q 'CLAUDE_PLUGIN_ROOT' "$M" && echo ok || echo bad)"
+assert_eq "declares no plugin dependencies (self-sufficient since 2.0)" "ok" \
+  "$(jq -e '.dependencies' "$M" >/dev/null 2>&1 && echo bad || echo ok)"
 finish_tests

@@ -20,4 +20,4 @@ Process:
 4. **Prove it:** state the cause; show that changing exactly that makes the failure disappear and nothing else.
 5. **Fix at the cause,** then add a regression test that fails before the fix and passes after.
 
-Pair with `superpowers:systematic-debugging`. A fix you cannot explain is not a fix.
+A fix you cannot explain is not a fix.

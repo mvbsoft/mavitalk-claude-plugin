@@ -4,7 +4,7 @@
 
 **mavitalk** is a personal, project-agnostic **Claude Code plugin**. It turns ad-hoc AI coding
 sessions into a disciplined, mostly hands-off workflow that behaves the same way across every
-repository that enables it. One install gives a repo three things:
+repository that enables it. One install gives a repo four things:
 
 1. **A shared operating contract** — the "how we work" standards, injected into every session at
    start, so the agent follows the same rules everywhere without copying them into each repo.
@@ -12,7 +12,11 @@ repository that enables it. One install gives a repo three things:
    triggers automatically (documentation, git, architecture, code quality, language/stack, safety),
    one project-setup wizard offered when a project isn't configured yet (`configure`), plus two
    **user-only** session commands (`/mavitalk:start-session`, `/mavitalk:end-session`).
-3. **A fan-out governor** — a hard limit on parallel sub-agent launches, so runaway parallelism
+3. **A cost layer** — a once-per-machine session profile (`opusplan` + pinned effort, offered by
+   `configure`), a session-start cost advisory when a session launches on an expensive profile, and
+   token-economy rules baked into the standards and both session commands, so the cheapest adequate
+   model handles every step by default and the user never has to think about model choice.
+4. **A fan-out governor** — a hard limit on parallel sub-agent launches, so runaway parallelism
    can never burn the token budget.
 
 It is distributed through its own git marketplace, `mavitalk-claude-plugin`, and is deliberately
@@ -26,6 +30,7 @@ serves every repo and every machine identically.
 
 - [What it is and why](#what-it-is-and-why)
 - [What it does for you — a concrete walkthrough](#what-it-does-for-you--a-concrete-walkthrough)
+- [How to drive it day to day — models and modes](#how-to-drive-it-day-to-day--models-and-modes)
 - [How it works — the three config layers](#how-it-works--the-three-config-layers)
 - [Install](#install)
 - [Configuring a project](#configuring-a-project)
@@ -36,7 +41,7 @@ serves every repo and every machine identically.
   - [The session pipeline](#the-session-pipeline)
   - [Skills](#skills)
   - [MCP server — context7](#mcp-server--context7)
-  - [Dependency — superpowers](#dependency--superpowers)
+  - [Relation to superpowers](#relation-to-superpowers)
   - [Templates](#templates)
 - [Configuration](#configuration)
 - [Repository structure](#repository-structure)
@@ -111,7 +116,10 @@ Staged 7 files — review the diff above and reply "ok" to commit.
 
 **6. Next time you sit down** — you type `/mavitalk:start-session`. It reads the handoff from disk,
 checks the recorded commit SHA against git (so it never trusts a stale "done" list), briefs you in your
-language, and resumes the exact next action. No re-explaining where you left off.
+language, and resumes the exact next action — or, if you passed a task with the command, starts on
+that directly without any lookup. It decides on its own whether the task needs a planning pass
+(Plan Mode, on Opus) or is clear enough to implement immediately (on Sonnet). No re-explaining
+where you left off, and no thinking about which model to use.
 
 The two `/mavitalk:` commands are the only things **you** drive directly; everything else (standards,
 skill triggers, the governor) happens around your normal work. The agent still does the reasoning — the
@@ -121,6 +129,107 @@ plugin makes it consistent, careful at the end, and frictionless at the start.
 > checks (ruff / eslint / php-cs-fixer on save) live in **each project's own `.claude/`**, not in this
 > plugin, because they are stack-specific. This plugin ships the shared *behavior*; each repo wires its
 > own per-edit gate. (The end-session review above is this plugin; the on-save auto-fix is the repo's.)
+
+---
+
+## How to drive it day to day — models and modes
+
+The machine profile (`model: opusplan` + `effortLevel: high` in `~/.claude/settings.json`, written
+once by `configure`'s machine step) makes model choice automatic. The single rule behind it:
+**Opus runs only while the session is in Plan Mode; every other state runs on Sonnet.** You never
+switch models for ordinary work — you start sessions and describe tasks.
+
+A normal day:
+
+```text
+claude                          # the session starts on the profile (opusplan + high)
+/mavitalk:start-session         # resume the handoff — or pass a task directly:
+                                #   /mavitalk:start-session fix the flaky auth test
+# simple task  → it names the files, asks a one-line confirmation, implements on Sonnet
+# complex task → it enters Plan Mode BY ITSELF → research + plan run on Opus
+#                → you approve the plan (pick "auto" or "accept edits" in the dialog)
+#                → implementation and inherited sub-agents continue on Sonnet
+/mavitalk:end-session           # gates → tiered review → handoff → gated commit
+```
+
+- **The permission mode is your preference, not the plugin's.** `default`, accept-edits, and auto
+  all count as "execution mode" for `opusplan` (= Sonnet). Work the way you like; only Plan Mode
+  (= Opus) is special, and the agent enters it when a task warrants a design pass — you can also
+  force it yourself (Shift+Tab) for any task you want planned.
+- **`start-session` never touches the model setting.** It only decides plan-vs-direct; *entering
+  Plan Mode* is what resolves `opusplan` to Opus, and approving the plan resolves it back to Sonnet.
+- **Manual escalation is fine — just return afterwards.** For a genuinely hard problem:
+  `/model fable` (or `/model opus`), solve it, then `/model opusplan`. Same for effort:
+  `/effort xhigh` for one hard pass, back to `high` after. If a session ever launches on an
+  expensive leftover, the session-start **cost advisory** reminds you — and stays silent on the
+  recommended profile.
+- **Between unrelated tasks**, prefer closing (`/mavitalk:end-session`) and starting fresh — the
+  handoff carries the context forward at a fraction of a long session's cost. `/clear` is the
+  lightweight in-between alternative.
+
+### The `start-session` flow — with and without a context
+
+```text
+/mavitalk:start-session [task?]
+ ├─ a task was passed → NO lookup at all (no handoff/memory/planning-file search);
+ │                      only the anti-drift SHA check if a handoff exists → triage
+ └─ bare → resolve the task; first hit wins:
+     1. .mavitalk/next-session.md            → its "Immediate next action"
+     2. project memory + newest session log  → an explicit "next / planned / deferred" item
+     3. repo planning files                  → TODO*, docs/plans/, README checklists
+     4. nothing found                        → proposes 2–3 concrete candidate tasks and waits
+ → anti-drift: git HEAD vs last_verified_sha (mismatch → the handoff is stale; reconcile first)
+ → 3–6-line briefing in your language → triage (below)
+```
+
+### When it plans and when it just codes (the triage)
+
+- **Direct implementation** (no Plan Mode, stays on Sonnet) when **all** of these hold: small
+  scope · no new public surface · no architectural choice · it can already name the exact files.
+  It states that the information is sufficient, names the 1–3 files, and asks one short
+  confirmation before touching code.
+- **Plan Mode** (Opus, via `opusplan`) when **any** of these holds: new functionality ·
+  multi-file change · a new dependency or module boundary · unclear scope. Inside it: research runs
+  the local-first ladder (repo code & docs → `.mavitalk` notes from earlier sessions → context7 for
+  library docs → the Internet only when local sources can't answer), nothing is invented, your own
+  decisions get challenged (weak points, risks, edge cases, alternatives), and implementation
+  starts only after you approve the plan.
+- **Unsure** → it asks one short question instead of defaulting to the expensive path.
+
+### Who runs on which model and effort
+
+| Role | Model | Effort |
+|---|---|---|
+| Main session — planning (Plan Mode) | Opus (via `opusplan`) | `high` (session setting) |
+| Main session — implementation, chat, everything else | Sonnet (via `opusplan`) | `high` (session setting) |
+| Deliberate escalation on the hardest tasks | Fable / Opus — manual `/model`, switch back after | raised per task, then back |
+| Ordinary inherited sub-agents | the session's resolved model (= Sonnet during execution) | inherited |
+| Impact-map / retrieval (end-session) | Haiku, as read-only `Explore` | — (Haiku takes none) |
+| Reviewers — correctness, security, architecture, data-flow, business-logic, grounded-verifier, requirement auditor | Sonnet; **Full** bumps correctness + architecture → Opus | `high` (pinned) |
+| Reviewers — quality-docs, test-adequacy, maintainability, production-readiness | Sonnet (Light may drop quality-docs to Haiku) | `medium` (pinned) |
+| Judge (Medium/Full aggregation; Light dedups in the main thread) | Opus | `high` (pinned) |
+| Contested-finding adjudicator; correctness + architecture on a very large Full change | Opus | `xhigh` (pinned) |
+
+Review models and effort come from `.mavitalk/config.yml` and are **pinned per role, never
+inherited** from the session. Never set `CLAUDE_CODE_SUBAGENT_MODEL` globally — it overrides even
+these explicit pins and would silently demote the Opus judge.
+
+### When and how to run `configure`
+
+| Step | Scope | When |
+|---|---|---|
+| **Project step** — `.mavitalk/config.yml` (gates, language, review) | once per repository | on the first session in a repo the session-start guard offers it; or run `/mavitalk:configure` yourself any time |
+| **Machine step** — `~/.claude/settings.json` (`opusplan` + `high`) | once per computer | the same command checks the global profile and offers the write whenever it differs; fresh machine = install plugin → open any project → `/mavitalk:configure` |
+| **Skill scoping** — `skillOverrides` in the project's `.claude/settings.json` | optional, per repository | when the stack makes some plugin skills clearly irrelevant (e.g. postgres skills in a pure frontend repo) |
+
+### The `end-session` flow (short)
+
+`/mavitalk:end-session` → runs the project's real gates and pastes the numbers → proposes a tier
+from measured signals (trivial → **skip review** by default, gates still run; small → Light;
+default → Medium; substantial → Full — you always confirm) → dispatches the read-only review wave
+per the table above → fixes Critical/Important findings test-first and re-runs the gates → writes
+the handoff (`next-session.md`, session log, project memory) → shows the staged diff and **waits
+for your "ok"** before committing. Nothing is pushed unless you ask.
 
 ---
 
@@ -171,9 +280,8 @@ During local development you can point the marketplace at a folder instead:
 
 After editing the plugin: `/plugin marketplace update mavitalk-claude-plugin` then `/reload-plugins`.
 
-**Dependency:** the manifest declares a dependency on the `superpowers` plugin (from the
-`superpowers-dev` marketplace). Enabling mavitalk auto-installs and enables `superpowers` at the same
-scope.
+**No dependencies.** Since 2.0 the plugin is self-sufficient — it no longer depends on the
+`superpowers` plugin (see [Relation to superpowers](#relation-to-superpowers)).
 
 ---
 
@@ -200,7 +308,7 @@ by the end-session command rather than wired to an event:
 | Event | Matcher | Script | What it does |
 |---|---|---|---|
 | `SessionStart` | `startup\|resume` | `inject-standards.sh` | Injects the cross-project standards (`mavitalk-standards.md`) as session context |
-| `SessionStart` | `startup\|resume` | `session-config-guard.sh` | Checks `.mavitalk/config.yml` and injects a dormant / offer-configure / advisory directive — gates the project-specific session lifecycle on a valid config; the standards above stay always-on |
+| `SessionStart` | `startup\|resume` | `session-config-guard.sh` | Checks `.mavitalk/config.yml` and injects a dormant / offer-configure / advisory directive — gates the project-specific session lifecycle on a valid config; the standards above stay always-on. Also emits a non-blocking **cost advisory** when an attended session launches on an expensive profile (a premium model, a `[1m]` window, or `xhigh`/`max` effort) instead of the recommended `opusplan` + `high` |
 | `PreToolUse` | `Agent\|Task\|Workflow\|Skill` | `agent-throttle.sh` | The fan-out governor — caps parallel sub-agent launches and gates the workflow/deep-research engines |
 | — (helper) | — | `session-signals.sh` | Emits deterministic working-tree facts for the finish assessment |
 
@@ -210,27 +318,34 @@ below).
 
 ### The injected standards
 
-`inject-standards.sh` reads its sibling `mavitalk-standards.md` and injects it as `additionalContext`
-at session start. This is the "how we work" contract, shared by every repo that enables the plugin.
-It has four sections:
+`inject-standards.sh` reads its sibling `mavitalk-standards.md`, substitutes the plugin-root
+placeholder (so the standards can point at on-demand detail files without carrying their weight),
+and injects it as `additionalContext` at session start. This is the "how we work" contract, shared
+by every repo that enables the plugin. It is deliberately kept lean — the full model-routing tables
+and throttle mechanics live in [`docs/model-routing.md`](plugins/mavitalk/docs/model-routing.md),
+read on demand. Five sections:
 
 - **How the owner works** — research-first design (look up authoritative facts and present a
   two-part plan — plain language + technical, with rejected alternatives — then wait for review
-  before building anything new; trivial edits are exempt); plans are a map, not gospel (argue for a
-  better solution when the gain is substantive); a full teach-first briefing before every
-  `AskUserQuestion`; research honesty with confidence %; surgical fixes (verify existing behavior
-  after every edit); "done = tests + docs in the same change"; capture stated rules and propose
-  skills for repeatable judgements.
+  before building anything new; trivial edits are exempt), run inside the real Plan Mode tool
+  (which is where `opusplan` actually uses Opus); plans are a map, not gospel; a teach-first
+  briefing before every `AskUserQuestion`; research honesty with confidence %; surgical fixes;
+  "done = tests + docs in the same change"; capture stated rules and propose skills.
+- **Session & token economy** — the `opusplan` + `high` daily profile with deliberate, temporary
+  escalation only; narrow-before-reading; the local-first research ladder (repo → `.mavitalk` notes
+  → context7 → Internet last) with findings persisted so no session repeats another's research;
+  sub-agents only when they earn their spawn; short sessions over long ones (the handoff carries
+  context at a fraction of the cost).
 - **Sub-agent model policy** — match the model to the task: Haiku for pure search/retrieval, Sonnet
   for synthesis/review/ordinary coding (default), Opus only for genuinely hard
-  research/architecture/validation. Pick the cheapest tier that fits.
+  research/architecture/validation, with floors that keep important work off weak models. Never set
+  `CLAUDE_CODE_SUBAGENT_MODEL` globally (it overrides even explicit per-dispatch models and would
+  silently demote the Opus judge).
 - **Agent & research safety** — a per-session token-leak safeguard. Direct dispatch (Agent/Task) is
-  metered by a cap (default 20 / 5 min, counted tree-wide): within → silent, over → ask (interactive)
-  / deny (autonomous). The mass-fan-out engines (Workflow, `deep-research`) spawn agents outside the
-  hook, so the cap can't meter them — they are gated on their own: ask interactive / deny autonomous.
-  Before any over-cap or engine fan-out the agent states what/why/how-many/which-models/whether-nests.
-  Depth stays one level by construction (read-only `Explore` / `mavitalk-review-*` leaves); multi-level
-  needs explicit owner approval. Every dispatched agent gets a bounded task with a stop condition.
+  metered by a cap (default 20 / 5 min, counted tree-wide); the mass-fan-out engines (Workflow,
+  `deep-research`) bypass the counter, so every engine launch needs the owner's approval. Depth
+  stays one level by construction (read-only `Explore` / `mavitalk-review-*` leaves); every
+  dispatched agent gets a bounded task with a stop condition.
 - **Authorship hygiene** — everything written into a repo reads as ordinary human engineering work:
   no AI/tool authorship fingerprints, and no ticket/plan/step codes in code or docs (process
   metadata belongs in the PR or issue tracker).
@@ -314,9 +429,15 @@ or ends a session through this plugin. All session state lives in one per-projec
 4. **Report** — gate numbers, a traceability table, the review verdict, the commit SHA (or "staged,
    awaiting ok"), and which `.mavitalk` files were updated.
 
-**Resume next time** — type `/mavitalk:start-session`. The command re-reads the handoff from disk,
-checks the last commit SHA against git so it never trusts a stale "done" list, briefs you in your
-language, and starts the immediate next action.
+**Resume next time** — type `/mavitalk:start-session`. Called bare, it resolves the task from the
+handoff chain (`next-session.md` → project memory / session logs → repo planning files → else it
+proposes 2–3 candidate tasks and asks), checks the last commit SHA against git so it never trusts a
+stale "done" list, and briefs you in your language. Called with a context
+(`/mavitalk:start-session fix the flaky auth test`), it skips the lookup entirely and starts on
+that task. Either way it then **triages the task itself**: simple and fully clear → names the files
+it will touch and asks one short confirmation (no Plan Mode, no research pass); complex /
+architectural / unclear → enters Plan Mode (where `opusplan` brings in Opus), researches local
+sources first, challenges your assumptions, and waits for your approval before touching code.
 
 `.mavitalk/` layout (scaffolded from the bundled templates on first finish):
 
@@ -339,13 +460,13 @@ A skill is a triggerable procedure: each `SKILL.md` carries a `description` that
 | Command | Trigger | Type |
 |---|---|---|
 | `/mavitalk:end-session` | You type it to end / wrap up a session and prepare the handoff | rigid |
-| `/mavitalk:start-session` | You type it to resume — restores the handoff and continues | rigid |
+| `/mavitalk:start-session` | You type it to resume (restores the handoff, or proposes a task when there is none) or to start a named task directly (`/mavitalk:start-session <context>` skips the lookup); it then triages plan-vs-direct itself | rigid |
 
 **Project setup**
 
 | Skill | Trigger | Type |
 |---|---|---|
-| `configure` | Set up or repair the plugin for a project (scan → propose → confirm → write `.mavitalk/config.yml`) — offered by the session-start guard when no valid config exists, or invoke directly with `/mavitalk:configure` | rigid |
+| `configure` | Set up or repair the plugin for a project (scan → propose → confirm → write `.mavitalk/config.yml`); also offers the once-per-machine cost profile (`opusplan` + pinned effort in `~/.claude/settings.json`) and per-project skill scoping (`skillOverrides`) — offered by the session-start guard when no valid config exists, or invoke directly with `/mavitalk:configure` | rigid |
 
 **Documentation**
 
@@ -405,12 +526,19 @@ and shipped here, it is **not** repeated in any repo's `.mcp.json`. Project-spec
 [`plugins/mavitalk/docs/mcp-snippets.md`](plugins/mavitalk/docs/mcp-snippets.md) for the canonical
 definitions and which repo uses which.
 
-### Dependency — superpowers
+### Relation to superpowers
 
-The manifest depends on the `superpowers` plugin (from the `superpowers-dev` marketplace), which
-provides the foundational skill framework (brainstorming, systematic-debugging, TDD, writing-plans,
-and the skill-invocation discipline). The marketplace allows this cross-marketplace dependency
-explicitly. You don't vendor it in — it stays maintained upstream and updates from its own source.
+Up to 1.x the manifest depended on the `superpowers` plugin. Since 2.0 mavitalk is
+**self-sufficient** and the dependency is gone. The reasons were measured, not aesthetic: running
+both meant paying twice for the same guarantees — superpowers reviews after every task while
+mavitalk runs the tiered end-session review on the same diff; its `brainstorming` hard-gate blocks
+reaching Plan Mode, which is exactly where the `opusplan` cost routing does its work; its TDD and
+verification skills duplicate `when-tests-are-owed` and the end-session VERIFY phase; and its
+session-start injection re-fires on every compaction (~2k tokens of standing overhead per session).
+mavitalk covers the same ground natively: research-first design in Plan Mode replaces the
+brainstorm→spec pipeline, `root-cause-analysis` replaces `systematic-debugging`, and the
+end-session pipeline replaces per-task review. The two plugins can still coexist — nothing breaks —
+but for token economy superpowers should be disabled where mavitalk runs.
 
 ### Templates
 
@@ -462,6 +590,7 @@ mavitalk-claude-plugin/
 │   ├── tests/                          # shell test suite (run-tests.sh + lib.sh)
 │   └── docs/
 │       ├── agent-fanout-governor.md    # governor design
+│       ├── model-routing.md            # session profile + full model/effort routing detail
 │       └── mcp-snippets.md             # canonical MCP definitions per repo
 ├── README.md                           # this file (source of truth)
 └── README.uk.md                        # Ukrainian mirror
@@ -489,7 +618,7 @@ It runs every `test-*.sh` and exits non-zero on any failure. Coverage:
 | `test-skill-invocation.sh` | the two session commands are user-only (`disable-model-invocation`); the 16 disciplines stay model-invocable |
 | `test-review-config.sh` | the review roster is intact: each reviewer has a prompt and a blind-spots line, the activation entries exist, the deprecated `max_review_agents` is gone from the template, and no standalone Sweep section remains |
 | `test-config-schema.sh` | the schema doc lists every recognized section and the deprecated key, defines both validation tiers, and stays in sync with the shipped template |
-| `test-session-config-guard.sh` | the guard's verdicts: missing / blocker / ok / advisory, attended vs. headless directives, and that an empty-string gate does not count as present |
+| `test-session-config-guard.sh` | the guard's verdicts: missing / blocker / ok / advisory, attended vs. headless directives, that an empty-string gate does not count as present, and the cost advisory (fires on premium/[1m]/xhigh launches, silent on `opusplan`, attended-only) |
 | `test-configure-skill.sh` | the `configure` skill stays model-invocable, documents scan → propose → confirm → write, and the doctor reference defines blockers/warnings |
 | `test-gate-resolution.sh` | gates resolve `config.yml gates:` → the `AGENTS.md` canonical runner → skip-with-warning, and the docs name that chain |
 
@@ -502,6 +631,10 @@ After changes: `/plugin marketplace update mavitalk-claude-plugin` then `/reload
 - [`plugins/mavitalk/docs/agent-fanout-governor.md`](plugins/mavitalk/docs/agent-fanout-governor.md)
   — the two-layer governor design (soft session-start rule + hard PreToolUse backstop), mode
   detection, and invariants.
+- [`plugins/mavitalk/docs/model-routing.md`](plugins/mavitalk/docs/model-routing.md) — the session
+  cost profile (`opusplan` + pinned effort), the full sub-agent model table with floors and the
+  escalation cascade, and the throttle's per-mode approval mechanics. Referenced from the injected
+  standards and read on demand, so its weight is not paid every session.
 - [`plugins/mavitalk/docs/mcp-snippets.md`](plugins/mavitalk/docs/mcp-snippets.md) — the canonical
   MCP server definitions shared across MaviTalk repos.
 

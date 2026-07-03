@@ -7,12 +7,12 @@ HOOK="$DIR/../hooks/session-config-guard.sh"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-ctx() { # project_dir, permission_mode
-  printf '{"permission_mode":"%s"}' "$2" | CLAUDE_PROJECT_DIR="$1" sh "$HOOK" \
+ctx() { # project_dir, permission_mode  (CLAUDE_EFFORT cleared: don't inherit the runner's session)
+  printf '{"permission_mode":"%s"}' "$2" | CLAUDE_PROJECT_DIR="$1" CLAUDE_EFFORT= sh "$HOOK" \
     | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
 }
 ctx_headless() { # project_dir, permission_mode
-  printf '{"permission_mode":"%s"}' "$2" | CLAUDE_PROJECT_DIR="$1" MAVITALK_HEADLESS=1 sh "$HOOK" \
+  printf '{"permission_mode":"%s"}' "$2" | CLAUDE_PROJECT_DIR="$1" CLAUDE_EFFORT= MAVITALK_HEADLESS=1 sh "$HOOK" \
     | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
 }
 
@@ -68,5 +68,38 @@ o="$(ctx_headless "$tmp/emptygate" default)"
 printf '%s' "$o" | grep -qi 'no gates'    && a=yes || a=no; assert_eq "empty-string gate + headless → 'no gates' advisory" "yes" "$a"
 printf '%s' "$o" | grep -qi 'dormant'     && a=yes || a=no; assert_eq "empty-string gate + headless → does NOT go dormant" "no" "$a"
 printf '%s' "$o" | grep -qi 'run /mavitalk:configure' && a=yes || a=no; assert_eq "empty-string gate + headless → no run-configure nudge" "no" "$a"
+
+# --- cost advisory (expensive launch profile) ---
+ctx_model() { # project_dir, permission_mode, model, [effort]
+  printf '{"permission_mode":"%s","model":"%s"}' "$2" "$3" \
+    | CLAUDE_PROJECT_DIR="$1" CLAUDE_EFFORT="${4:-}" sh "$HOOK" \
+    | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+}
+ctx_model_headless() { # project_dir, permission_mode, model
+  printf '{"permission_mode":"%s","model":"%s"}' "$2" "$3" \
+    | CLAUDE_PROJECT_DIR="$1" MAVITALK_HEADLESS=1 sh "$HOOK" \
+    | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+}
+
+# ok config + recommended profile → still silent
+assert_empty "opusplan launch → silent" "$(ctx_model "$tmp/ok" default "opusplan")"
+
+# ok config + premium model with 1M window → cost advisory naming the recommendation
+o="$(ctx_model "$tmp/ok" default "claude-fable-5[1m]")"
+printf '%s' "$o" | grep -qi 'cost advisory' && a=yes || a=no; assert_eq "fable[1m] launch → cost advisory" "yes" "$a"
+printf '%s' "$o" | grep -q  'opusplan'      && a=yes || a=no; assert_eq "cost advisory names the recommended profile" "yes" "$a"
+printf '%s' "$o" | grep -qi '1M context'    && a=yes || a=no; assert_eq "cost advisory flags the 1M window" "yes" "$a"
+
+# ok config + xhigh effort on the recommended model → effort-only advisory
+o="$(ctx_model "$tmp/ok" default "opusplan" "xhigh")"
+printf '%s' "$o" | grep -qi "effort 'xhigh'" && a=yes || a=no; assert_eq "xhigh effort → effort advisory" "yes" "$a"
+
+# expensive launch + headless → no cost advisory (nobody to act on it)
+assert_empty "fable launch + headless → silent" "$(ctx_model_headless "$tmp/ok" default "claude-fable-5[1m]")"
+
+# expensive launch + missing config → dormant directive still present, cost advisory appended
+o="$(ctx_model "$tmp/missing" default "claude-fable-5[1m]")"
+printf '%s' "$o" | grep -qi 'dormant'        && a=yes || a=no; assert_eq "missing config + fable → still dormant" "yes" "$a"
+printf '%s' "$o" | grep -qi 'cost advisory'  && a=yes || a=no; assert_eq "missing config + fable → cost advisory appended" "yes" "$a"
 
 finish_tests

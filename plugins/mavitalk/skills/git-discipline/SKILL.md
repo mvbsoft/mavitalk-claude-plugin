@@ -16,4 +16,10 @@ description: >
 
 **Before commit:** run the repo's gates (lint/typecheck/tests). Never commit secrets, `.env`, tokens, or generated junk; check `git status` and the staged diff.
 
+**Isolation (worktrees):** when starting feature work that must not disturb the current working
+tree (e.g. an experiment beside an in-progress change), use a git worktree instead of stash
+juggling: `git worktree add .worktrees/<slug> -b feat/<slug>` (ensure `.worktrees/` is gitignored),
+work there, and `git worktree remove` when merged. Reach for this only when isolation is actually
+needed — a normal branch in the main tree is the default.
+
 **PRs:** branch off `master`, push, open with a clear what/why and test evidence. Keep PRs reviewable (small). Use `--force-with-lease`, never `--force`.

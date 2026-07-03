@@ -6,12 +6,11 @@
   "metadata": {
     "description": "Personal Claude Code plugin marketplace. Hosts the `mavitalk` plugin — a bundle of reusable, project-agnostic workflow skills shared across all repos and machines."
   },
-  "allowCrossMarketplaceDependenciesOn": ["superpowers-dev"],
   "plugins": [
     {
       "name": "mavitalk",
       "source": "./plugins/mavitalk",
-      "description": "Bundle of reusable, project-agnostic Claude Code workflow skills plus user-only session commands (/mavitalk:start-session, /mavitalk:end-session) for resume and end-of-session wrap-up (independent verification + handoff + clean commit). Each skill reads gates/conventions/language from the project's CLAUDE.md."
+      "description": "Bundle of reusable, project-agnostic Claude Code workflow skills plus user-only session commands (/mavitalk:start-session, /mavitalk:end-session) for resume and end-of-session wrap-up (independent verification + handoff + clean commit), with a built-in cost layer (opusplan profile, cost advisories, token-economy standards). Each skill reads gates/conventions/language from the project's own files."
     }
   ]
 }

@@ -14,7 +14,8 @@ make:
 
 Classify → propose:
 - **Trivial** — ALL of: 1 file · no new/changed behavior · no new public surface · gates were green
-  → propose **Light** (and offer to skip review entirely: persist + report only).
+  → propose **skipping review entirely** (gates still run; persist + report only), offering
+  **Light** as the alternative if the owner wants a check anyway.
 - **Substantial** — feature-sized / many files / new public surface / touched auth·payments·
   migration·schema → propose **Full**.
 - otherwise → **Medium**.

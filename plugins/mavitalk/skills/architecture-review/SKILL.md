@@ -19,4 +19,4 @@ Check the proposed change against:
 5. **Bounded context:** does it leak one domain's concepts into another? Keep contexts behind their public API (`index.ts` / service interface).
 6. **Anti-patterns:** god-object, anemic-then-fat service, business logic in controllers/handlers, validation duplicated instead of shared, new global singletons.
 
-If any check fails, propose the corrected placement **before** writing code. Pair with `superpowers:brainstorming` for the design and `modularity-check` for structure.
+If any check fails, propose the corrected placement **before** writing code. Design non-trivial changes in Plan Mode (research-first, per the cross-project standards) and pair with `modularity-check` for structure.
