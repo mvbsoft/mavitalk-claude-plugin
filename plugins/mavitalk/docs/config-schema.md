@@ -11,7 +11,7 @@ the config doctor validates a project's file against it. Any key not listed here
 | Key | Default | Required? | Meaning |
 |---|---|---|---|
 | `language.artifacts` | `en` | no (defaulted) | Language used for `.mavitalk` files and commit messages. |
-| `language.conversation` | `auto` | no (defaulted) | Conversation language; detected from the user's message when unset. |
+| `language.conversation` | `auto` | no (defaulted) | Conversation language — governs chat replies, research-first plans (both the plain-language and technical sections), and `AskUserQuestion` briefings alike; detected from the user's message when unset. |
 
 ### `attribution`
 

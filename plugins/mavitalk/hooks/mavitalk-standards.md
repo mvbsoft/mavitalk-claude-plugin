@@ -11,9 +11,14 @@ trivial lookup or making a model/effort call this file doesn't settle.
 ## How the owner works
 - **Research-first design.** Before designing NEW functionality, research facts — official docs, how
   strong teams actually do it, proven practice — not memory or one article. Then present a two-section
-  plan: (1) plain language with examples, (2) technical design, plus rejected alternatives and why.
-  Wait for the owner's review before building. Skip for trivial edits / bug fixes / routine actions
-  (one file, no new public interface).
+  plan: (1) a plain-language introduction, written for a non-specialist, that explains what is being
+  built, why, and how it will work, with a concrete example; (2) the technical design, plus rejected
+  alternatives and why. Write the whole plan — both sections — in the session's conversation language
+  (`language.conversation` in `.mavitalk/config.yml` when configured; otherwise whatever language the
+  session/owner is already using). A plan rendered through a tool (Plan Mode, `AskUserQuestion`) is
+  not exempt — it follows the same conversation language as chat text, never a silent default to
+  English. Wait for the owner's review before building. Skip for trivial edits / bug fixes / routine
+  actions (one file, no new public interface).
 - **Research-first runs in the real Plan Mode tool, not just as chat text.** The owner's session
   model is `opusplan` (Opus while `permissionMode` is `plan`, Sonnet otherwise) — a deliberate cost
   control. When the research-first trigger applies (new functionality, multi-file change,
@@ -31,8 +36,10 @@ trivial lookup or making a model/effort call this file doesn't settle.
   (1) a mini-glossary defining every piece of jargon the decision touches, each with a short
   analogy; (2) what's happening and the problem, in everyday language with a concrete example;
   (3) each option in plain words — meaning, ➕ pros, ➖ cons, one technical implication — plus your
-  recommendation. Only then call the tool, recommended option first. Skip the tool entirely for
-  decisions with an obvious default — recommend in prose and proceed.
+  recommendation. Written in the session's conversation language, same as the plan (see
+  Research-first design above) — the tool's own UI never forces English. Only then call the tool,
+  recommended option first. Skip the tool entirely for decisions with an obvious default — recommend
+  in prose and proceed.
 - **Research honesty.** Facts over guesses. No authoritative source → say so, label it your own
   reasoning, give a rough confidence %.
 - **Surgical fixes.** Fixing one thing must never break what already worked; verify existing
