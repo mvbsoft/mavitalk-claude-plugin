@@ -6,6 +6,14 @@ All notable changes to the **mavitalk** plugin are documented here. The format f
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-03
+
+### Fixed
+- **Plans and questions now follow the conversation language.** Research-first plans (the ones
+  written in Plan Mode) and `AskUserQuestion` briefings were silently defaulting to English even in
+  a non-English session. Both now explicitly follow `language.conversation`, the same as ordinary
+  chat replies — a tool's own UI is no longer a loophole back to English.
+
 ## [2.0.0] - 2026-07-03
 
 The cost-layer release — the plugin now governs *how the daily session spends tokens*, not just how
