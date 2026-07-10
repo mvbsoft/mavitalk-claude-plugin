@@ -44,6 +44,10 @@ trivial lookup or making a model/effort call this file doesn't settle.
   reasoning, give a rough confidence %.
 - **Surgical fixes.** Fixing one thing must never break what already worked; verify existing
   behaviour after every edit.
+- **Reach for what's already there before writing new code.** Standard library first, then an
+  already-installed dependency (check `package.json` / `requirements.txt` / `composer.json` or
+  equivalent), only then a new dependency or hand-rolled code. This governs the *reach* for a
+  solution; `modularity-check` governs the *shape* once you're building — they don't overlap.
 - **Done = tests + docs.** A change is finished only when BOTH gates are green: tests cover it AND
   every affected doc is updated in the same change. Stale docs are a bug, equal to a failing test.
 - **Capture rules / propose skills.** When the owner states a rule, record it concisely (English) in
