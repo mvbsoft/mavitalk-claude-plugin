@@ -2,7 +2,7 @@
   "mcpServers": {
     "context7": { "type": "http", "url": "https://mcp.context7.com/mcp" }
   },
-  "version": "2.0.1",
+  "version": "2.0.2",
   "name": "mavitalk",
   "description": "Project-agnostic Claude Code workflow & cost layer: user-only session commands (start-session, end-session) around a persisted handoff, shared discipline skills, cross-project standards injected at session start, a cost-routing profile (opusplan + pinned effort), and a sub-agent fan-out governor (agent throttle).",
   "author": {

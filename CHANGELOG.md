@@ -6,6 +6,14 @@ All notable changes to the **mavitalk** plugin are documented here. The format f
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-07-10
+
+### Added
+- **Standing rule: reach for what already exists before writing new code.** The injected standards
+  now say to check the standard library, then an already-installed dependency, before adding a new
+  one or hand-rolling it — distinct from `modularity-check`, which governs shape once you're
+  building, not the initial reach for a solution.
+
 ## [2.0.1] - 2026-07-03
 
 ### Fixed
